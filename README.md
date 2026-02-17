@@ -60,23 +60,43 @@ Then open **http://localhost:3000**. The UI shows **token stats** (price, market
 
 The included web app is a **Solana token** viewer and lightweight **token monitor** / **token tracker**: enter a token mint to view **token stats** (price, market cap, volume 24h, holders) and **metadata**; select a DEX program (e.g. **Raydium** CLMM, **Pump.fun**) to see markets/pools that include that **token**; and switch between token view and markets table. All **token stats** and **metadata** are fetched from the Vybe **Solana token API** and displayed in the browser.
 
-## Solana Endpoints Used
+## API base and auth
 
-| Endpoint | Purpose |
-|----------|---------|
-| `GET /v4/tokens/{mintAddress}` | Token stats, metadata, price, market cap, volume |
-| `GET /v4/markets` | List markets/pools by DEX program (Raydium, Orca, Pump.fun, etc.) |
+- **Base URL:** `https://api.vybenetwork.xyz`
+- **Headers:** `X-API-KEY: <your-api-key>`, `Accept: application/json`
+
+## Solana endpoints and parameters
+
+### 1. Token details (stats and metadata)
+
+**`GET /v4/tokens/{mintAddress}`** — Token stats, metadata, price, market cap, volume, holders.
+
+| Type | Name | Required | Description |
+|------|------|----------|-------------|
+| Path | `mintAddress` | Yes | Token mint (SPL, base58) |
+
+No query parameters. Response includes `symbol`, `name`, `mintAddress`, `price`, `marketCap`, `decimal`, `logoUrl`, `category`, `currentSupply`, `price1d`, `price7d`, etc.
+
+### 2. Markets / pools
+
+**`GET /v4/markets`** — List markets/pools by DEX program.
+
+| Type | Name | Required | Description |
+|------|------|----------|-------------|
+| Query | `programAddress` | **Yes** | DEX program ID, e.g. Raydium CLMM: `CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK`, Raydium V4: `675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8`, Pump.fun: `6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P` |
+| Query | `limit` | No | Max number of markets (number) |
+| Query | `offset` | No | Pagination offset (number) |
 
 - [Token Details & Metrics](https://docs.vybenetwork.com/docs/token-details-spl-token-2022)
 - [Fetch Markets / Pools](https://docs.vybenetwork.com/docs/fetch-markets-pools)
 
-## Code Example
+## Code example
 
 ```javascript
 const axios = require('axios');
 
-const API = 'https://api.vybenetwork.com';
-const headers = { 'X-API-Key': process.env.VYBE_API_KEY };
+const API = 'https://api.vybenetwork.xyz';
+const headers = { 'X-API-KEY': process.env.VYBE_API_KEY, 'Accept': 'application/json' };
 
 // 1) Token stats & metadata (price, volume, market cap, etc.)
 async function getTokenDetails(mintAddress) {
@@ -84,7 +104,7 @@ async function getTokenDetails(mintAddress) {
   return data;
 }
 
-// 2) Markets/pools for a DEX – see where this token is traded (Raydium, Pump.fun, etc.)
+// 2) Markets/pools for a DEX – programAddress is required
 async function getMarketsForProgram(programAddress, limit = 20) {
   const { data } = await axios.get(
     `${API}/v4/markets`,
@@ -94,17 +114,17 @@ async function getMarketsForProgram(programAddress, limit = 20) {
 }
 
 const tokenMint = 'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263'; // BONK
-const raydiumClmm = 'CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK';
+const raydiumV4 = '675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8';
 
 Promise.all([
   getTokenDetails(tokenMint),
-  getMarketsForProgram(raydiumClmm, 10)
+  getMarketsForProgram(raydiumV4, 10)
 ]).then(([token, markets]) => {
-  console.log('Token stats:', token.symbol, token.priceUsd, token.volume24hUsd);
+  console.log('Token stats:', token.symbol, token.price, token.marketCap);
   const tokenMarkets = markets.data?.filter(m =>
-    m.baseTokenMint === tokenMint || m.quoteTokenMint === tokenMint
+    m.baseMint === tokenMint || m.quoteMint === tokenMint
   );
-  console.log('Markets for token (Raydium):', tokenMarkets?.length);
+  console.log('Markets for token:', tokenMarkets?.length);
 });
 ```
 
