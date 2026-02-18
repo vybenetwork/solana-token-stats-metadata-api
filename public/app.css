@@ -239,6 +239,88 @@ button:active {
   margin: 0 0 0.75rem 0;
 }
 
+.trades-summary-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+@media (max-width: 640px) {
+  .trades-summary-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.trades-summary-block {
+  background: #0f0f12;
+  border: 1px solid #27272a;
+  border-radius: 6px;
+  padding: 1rem;
+}
+
+.trades-summary-programs {
+  min-width: 0;
+}
+
+.trades-summary-programs table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.trades-summary-programs table col.col-label {
+  width: 52%;
+}
+
+.trades-summary-programs table col.col-count {
+  width: 4.5rem;
+}
+
+.trades-summary-programs table th:first-child,
+.trades-summary-programs table td:first-child {
+  width: 52%;
+  box-sizing: border-box;
+}
+
+.trades-summary-programs table th:last-child,
+.trades-summary-programs table td:last-child {
+  width: 4.5rem;
+  min-width: 4.5rem;
+  max-width: 4.5rem;
+  text-align: right;
+  box-sizing: border-box;
+}
+
+.trades-summary-programs table td:nth-child(2) {
+  min-width: 0;
+}
+
+.trades-summary-programs a {
+  color: #3b82f6;
+  text-decoration: none;
+}
+
+.trades-summary-programs a:hover {
+  text-decoration: underline;
+}
+
+.trades-summary-quotes {
+  min-width: 0;
+}
+
+.trades-summary-subtitle {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #a1a1aa;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0 0 0.75rem 0;
+}
+
+.trades-summary-table {
+  font-size: 0.85rem;
+}
+
 .table-wrap {
   overflow-x: auto;
 }
