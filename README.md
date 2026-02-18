@@ -1,134 +1,258 @@
 # Solana Token Stats & Metadata API
 
-A **Solana token API** demo for **token stats** and **metadata**: fetch token details, metrics, and **metadata** for any Solana token from **Pump.fun**, **Raydium**, Orca, and 30+ other DEXs using Vybe’s vetted market data. Use it as a **Solana token** data source for research, dashboards, or as a **token monitor** / **token tracker** backend. This repo includes a **web app (GUI)** to browse **token stats**, **metadata**, and markets in the browser.
+**By Eoin Brady** · 2 min read
+
+This repository demonstrates how to use the Vybe Solana Token API to fetch token stats and metadata for any SPL token.
+
+**Retrieve:**
+
+- Token price
+- Market cap
+- 24h volume
+- Holder count
+- Symbol, name, decimals
+- Top holders (top 100; updated every 3 hours)
+
+Data is sourced from Pump.fun, Raydium, Orca, and 30+ other Solana DEX programs using vetted market data. When metadata is available from both Pump.fun and PumpSwap, PumpSwap is preferred.
+
+This repo includes:
+
+- Token details (stats and metadata) endpoint
+- Top holders endpoint
+- A browser-based web app (GUI) to browse token stats and top holders in one view
 
 ## Why This Matters
 
-**Token stats** and **metadata** are the foundation of token research, analytics, and trading tools. A **Solana token API** that aggregates from **Pump.fun**, **Raydium**, and other vetted markets gives you accurate price, volume, market cap, and holder data—without noise from junk pools. Vybe’s **token** details and **metadata** endpoints, combined with markets/pools, let you build a **token monitor** or **token tracker** that shows where each **token** trades (e.g. **Pump.fun**, **Raydium** CLMM). This demo uses two endpoints: **token** details/metrics (the core **token stats** and **metadata**) and markets/pools so you can list every market for a given DEX.
+Token stats and metadata are foundational for:
 
-### What You Get
+- Token research
+- Analytics dashboards
+- Trading tools
+- Token monitors / token trackers
 
-- **Token stats and metadata** — Price, market cap, 24h volume, holders, symbol, name, decimals for any SPL token.
-- **Markets/pools by DEX** — See every **Raydium**, **Pump.fun**, Orca, or other DEX **market** where a token trades.
-- **Single REST API** — One **Solana token API** for **token price**, **metadata**, and **liquidity** context.
-- **Web app** — Browse **token** details and **markets** in the browser; use as a lightweight **token monitor** or **token tracker**.
+A Solana token API that aggregates data from Pump.fun, Raydium, and other vetted markets provides consistent token price, volume, and market cap data.
 
-### How This Helps
+Vybe’s `/v4/tokens/{mintAddress}` endpoint returns token details and metrics; `/v4/tokens/{mintAddress}/top-holders` returns the top 100 holders sorted by highest percentage of supply (updated every 3 hours). When both Pump.fun and PumpSwap return results for metadata, use PumpSwap’s.
 
-Use this demo for **token research**, **token analytics**, dashboards, or as the backend for a **token monitor** / **token tracker**. **Token stats** and **metadata** from vetted **DEX** and **AMM** sources avoid junk pools. Get your API key and clone to build on top of the same **REST API**.
+This demo uses:
 
----
+- **Token details / metrics endpoint** — price, market cap, volume, metadata
+- **Top holders endpoint** — top token holders (rank, balance, value USD, % supply)
 
-**Get a free Vybe API key** (required to run this demo):
+## What You Get
 
-**[Get your free Vybe API key →](https://vybenetwork.com/pricing?utm_source=github&utm_medium=repo&utm_campaign=solana-token-stats-metadata-api)**  
-**[Vybe API documentation →](https://docs.vybenetwork.com/docs/token-details-spl-token-2022?utm_source=github&utm_medium=repo&utm_campaign=solana-token-stats-metadata-api)**
+### Token Stats & Metadata
 
----
+Retrieve:
+
+- Price
+- Market cap
+- 24h volume
+- Holder count
+- Symbol
+- Name
+- Decimals
+- Current supply
+- Price change metrics (e.g. 1d, 7d where available)
+
+For any SPL token mint.
+
+### Top Holders
+
+The app requests data in sequence to space out API calls: it fetches **top holders** first via `GET /v4/tokens/{mintAddress}/top-holders` (with `page=0`, `limit=100`, `sortByDesc=percentageOfSupplyHeld`), waits 2 seconds, then fetches **token details** via `GET /v4/tokens/{mintAddress}`. For tokens that return a positive response (e.g. listed on Pump.fun or PumpSwap), the top holders table shows rank, owner, balance, value USD, and % of supply (top 100 by highest % of supply; updated every 3 hours).
+
+### Single REST API
+
+Use one Solana token API to retrieve:
+
+- Token price
+- Metadata
+- Top holders
+
+### Web App (GUI)
+
+The included web app allows you to:
+
+- Enter a token mint
+- Click **Load Token Metadata & Top Holders** to load data: the app fetches top holders first, waits 2 seconds, then fetches token stats and metadata
+- View token stats (price, market cap, volume 24h, holders) and metadata (symbol, name, decimals)
+- View top holders when the API returns data (e.g. for tokens on Pump.fun / PumpSwap)
+
+When metadata is available from both Pump.fun and PumpSwap, PumpSwap’s result is preferred. All data is fetched from the Vybe Solana Token API.
+
+## Get a Free API Key
+
+You’ll need a Vybe API key to run this demo.
+
+- [Get your free Vybe API key](https://vybenetwork.com/pricing?utm_source=github&utm_medium=repo&utm_campaign=solana-token-stats-metadata-api)
+- [View Vybe API documentation](https://docs.vybenetwork.com/docs/token-details-spl-token-2022?utm_source=github&utm_medium=repo&utm_campaign=solana-token-stats-metadata-api)
 
 ## How to Run
 
-1. Clone this repository:
+### 1. Clone the repository
+
 ```bash
 git clone https://github.com/your-org/solana-token-stats-metadata-api.git
 cd solana-token-stats-metadata-api
 ```
 
-2. Install dependencies:
+### 2. Install dependencies
+
 ```bash
 npm install
 ```
 
-3. Set your API key:
+### 3. Set your API key
+
 ```bash
 cp .env.example .env
-# Edit .env and add your VYBE_API_KEY
+# Add your VYBE_API_KEY to .env
 ```
 
-4. Run the demo (CLI):
+### 4. Run the CLI demo
+
 ```bash
 npm start
 ```
 
-5. Run the web app (GUI):
+### 5. Run the Web App (GUI)
+
+From the project directory:
+
 ```bash
 npm run dev
 ```
-Then open **http://localhost:3000**. The UI shows **token stats** (price, market cap, volume), **metadata**, and a list of markets where the **token** trades on **Pump.fun**, **Raydium**, and other DEXs.
 
-## Web App / GUI
+If you haven’t set `VYBE_API_KEY` in `.env`, you can pass it inline:
 
-The included web app is a **Solana token** viewer and lightweight **token monitor** / **token tracker**: enter a token mint to view **token stats** (price, market cap, volume 24h, holders) and **metadata**; select a DEX program (e.g. **Raydium** CLMM, **Pump.fun**) to see markets/pools that include that **token**; and switch between token view and markets table. All **token stats** and **metadata** are fetched from the Vybe **Solana token API** and displayed in the browser.
+```bash
+VYBE_API_KEY="your-api-key" npm run dev
+```
 
-## API base and auth
+Open:
 
-- **Base URL:** `https://api.vybenetwork.xyz`
-- **Headers:** `X-API-KEY: <your-api-key>`, `Accept: application/json`
+**http://localhost:3000**
 
-## Solana endpoints and parameters
+Enter a token mint and click **Load Token Metadata & Top Holders** to see token stats, metadata, and top holders (when the API returns data, e.g. for Pump.fun / PumpSwap tokens).
 
-### 1. Token details (stats and metadata)
+### 6. (Optional) Run with Cloudflare Tunnel
 
-**`GET /v4/tokens/{mintAddress}`** — Token stats, metadata, price, market cap, volume, holders.
+To expose the app on a public URL (e.g. for sharing or testing from another device), use the tunnel option. Requires [cloudflared](https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/install-and-setup/installation/) installed.
 
-| Type | Name | Required | Description |
-|------|------|----------|-------------|
-| Path | `mintAddress` | Yes | Token mint (SPL, base58) |
+From the project directory:
 
-No query parameters. Response includes `symbol`, `name`, `mintAddress`, `price`, `marketCap`, `decimal`, `logoUrl`, `category`, `currentSupply`, `price1d`, `price7d`, etc.
+```bash
+npm run dev:tunnel
+```
 
-### 2. Markets / pools
+(Uses `VYBE_API_KEY` from `.env`. To pass the key inline: `VYBE_API_KEY="your-api-key" npm run dev:tunnel`.)
 
-**`GET /v4/markets`** — List markets/pools by DEX program.
+Other ways to enable the tunnel:
 
-| Type | Name | Required | Description |
-|------|------|----------|-------------|
-| Query | `programAddress` | **Yes** | DEX program ID, e.g. Raydium CLMM: `CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK`, Raydium V4: `675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8`, Pump.fun: `6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P` |
-| Query | `limit` | No | Max number of markets (number) |
-| Query | `offset` | No | Pagination offset (number) |
+```bash
+node server.js --tunnel
+# or
+TUNNEL=1 node server.js
+```
 
-- [Token Details & Metrics](https://docs.vybenetwork.com/docs/token-details-spl-token-2022)
-- [Fetch Markets / Pools](https://docs.vybenetwork.com/docs/fetch-markets-pools)
+The console will print a **Cloudflare Tunnel URL** (e.g. `https://xxx.trycloudflare.com`). Open that URL in a browser to access the app from the internet.
 
-## Code example
+## API Configuration
+
+**Base URL**
+
+```
+https://api.vybenetwork.xyz
+```
+
+**Required Headers**
+
+```
+X-API-KEY: <your-api-key>
+Accept: application/json
+```
+
+The app uses a **60-second timeout** for Vybe requests. If the Vybe API is slow, the request will fail with a timeout error instead of hanging.
+
+## Solana API Endpoints Used
+
+### 1️⃣ Token Details (Stats & Metadata)
+
+**`GET /v4/tokens/{mintAddress}`**
+
+Retrieve token stats, metadata, and metrics.
+
+| Parameter    | Required | Description           |
+|-------------|----------|-----------------------|
+| mintAddress | Yes      | Token mint (SPL, base58) |
+
+No query parameters.
+
+Response fields include:
+
+- symbol
+- name
+- mintAddress
+- priceUsd
+- marketCapUsd
+- decimals
+- logoUrl
+- category
+- currentSupply
+- price1d
+- price7d
+- volume24hUsd
+- holders
+
+### 2️⃣ Top Holders
+
+**`GET /v4/tokens/{mintAddress}/top-holders`**
+
+Returns the top 100 token holders sorted by highest percentage of supply (updated every 3 hours). Request uses `page=0`, `limit=100`, `sortByDesc=percentageOfSupplyHeld`. Fetched when loading a token; if the response is positive (e.g. token on Pump.fun or PumpSwap), the table is shown.
+
+| Parameter     | Required | Description |
+|---------------|----------|-------------|
+| mintAddress   | Yes      | Token mint (path) |
+| limit         | No       | Per page (default/max 100) |
+| page          | No       | 0-indexed |
+| sortByAsc     | No       | e.g. `rank`, `valueUsd`, `balance`, `percentageOfSupplyHeld` |
+| sortByDesc    | No       | Same options |
+
+- [Top Holders (API reference)](https://docs.vybenetwork.com/reference/get_top_holders_v4)
+
+## Code Example
 
 ```javascript
 const axios = require('axios');
-
 const API = 'https://api.vybenetwork.xyz';
-const headers = { 'X-API-KEY': process.env.VYBE_API_KEY, 'Accept': 'application/json' };
-
-// 1) Token stats & metadata (price, volume, market cap, etc.)
+const headers = {
+  'X-API-KEY': process.env.VYBE_API_KEY,
+  'Accept': 'application/json'
+};
+// Token stats & metadata
 async function getTokenDetails(mintAddress) {
   const { data } = await axios.get(`${API}/v4/tokens/${mintAddress}`, { headers });
   return data;
 }
-
-// 2) Markets/pools for a DEX – programAddress is required
-async function getMarketsForProgram(programAddress, limit = 20) {
+// Top holders (updated every 3 hours)
+async function getTopHolders(mintAddress, limit = 100) {
   const { data } = await axios.get(
-    `${API}/v4/markets`,
-    { params: { programAddress, limit }, headers }
+    `${API}/v4/tokens/${mintAddress}/top-holders`,
+    { params: { limit }, headers }
   );
   return data;
 }
-
-const tokenMint = 'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263'; // BONK
-const raydiumV4 = '675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8';
-
+const tokenMint = 'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263';
 Promise.all([
   getTokenDetails(tokenMint),
-  getMarketsForProgram(raydiumV4, 10)
-]).then(([token, markets]) => {
+  getTopHolders(tokenMint, 10)
+]).then(([token, holders]) => {
   console.log('Token stats:', token.symbol, token.price, token.marketCap);
-  const tokenMarkets = markets.data?.filter(m =>
-    m.baseMint === tokenMint || m.quoteMint === tokenMint
-  );
-  console.log('Markets for token:', tokenMarkets?.length);
+  console.log('Top holders:', holders.data?.length);
 });
 ```
 
-## Example Output
+## Example Response
 
 ```json
 {
@@ -143,8 +267,7 @@ Promise.all([
 }
 ```
 
-## Need Help?
+## Support
 
-Reach out to Vybe support:
-- **Telegram**: [Vybe Telegram community](https://t.me/vybenetwork)
-- **Support ticket**: [Submit a ticket on the Vybe website](https://vybenetwork.com)
+- **Telegram:** [Vybe community](https://t.me/vybenetwork)
+- **Support ticket:** [Submit a ticket via vybenetwork.xyz](https://vybenetwork.com)

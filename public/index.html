@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Solana Token Stats & Metadata</title>
+  <link rel="stylesheet" href="app.css" />
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Token Stats & Metadata</h1>
+      <p class="subtitle">Solana token details and top holders via Vybe API</p>
+    </header>
+
+    <section class="inputs">
+      <div class="field">
+        <label for="mint">Token mint address</label>
+        <input type="text" id="mint" placeholder="e.g. DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263" value="DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263" />
+      </div>
+      <div class="actions">
+        <button type="button" id="fetchAll">Load Token Metadata & Top Holders</button>
+        <div class="loading" id="loadingIndicator" hidden aria-hidden="true">
+          <span class="loading-spinner"></span>
+          <span class="loading-text">Loading…</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="token-section panel" id="tokenSection" hidden>
+      <h2>Token stats & metadata</h2>
+      <div class="token-header">
+        <img id="tokenLogo" alt="" class="token-logo" />
+        <div>
+          <span id="tokenSymbol" class="symbol"></span>
+          <span id="tokenName" class="name"></span>
+        </div>
+      </div>
+      <div class="token-stats-groups" id="tokenStats"></div>
+    </section>
+
+    <section class="holders-section panel" id="holdersSection" hidden>
+      <h2>Top 100 holders (by % supply)</h2>
+      <p class="meta" id="holdersMeta"></p>
+      <div class="table-wrap">
+        <table id="holdersTable">
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>Owner</th>
+              <th>Balance</th>
+              <th>Value (USD)</th>
+              <th>% supply</th>
+            </tr>
+          </thead>
+          <tbody id="holdersBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="error panel" id="errorSection" hidden>
+      <h2>Error</h2>
+      <pre id="errorText"></pre>
+    </section>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
