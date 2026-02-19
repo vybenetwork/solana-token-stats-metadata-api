@@ -2,9 +2,13 @@
 
 This repository demonstrates how to use the Vybe Solana Token API to fetch token stats and metadata for any SPL token.
 
-![Token stats, trades summary, and top holders](screenshots/token-stats.png)
+![Token metadata and stats](screenshots/token-metadata-spl-token2022-solana-api.png)
 
-*Add a screenshot of the running app to `screenshots/token-stats.png` (or update the path above).*
+![Top markets (from last 1000 trades)](screenshots/top-markets-token-solana-api.png)
+
+![Top traders by realized PnL (30d)](screenshots/top-traders-solana-api.png)
+
+![Top token holders](screenshots/top-token-holders-solana-api.png)
 
 **Retrieve:**
 
