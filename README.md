@@ -63,9 +63,21 @@ Retrieve:
 
 For any SPL token mint.
 
+### Top markets (from last 1000 trades)
+
+From the last 1000 trades, the app counts by `marketAddress` and shows the top 10 markets. For each market, the **Pair** column shows base token / most common quote mint (excluding the token mint). Table columns: Market address, Pair, Count. Market addresses link to Solscan in a new tab.
+
 ![Top markets (from last 1000 trades)](screenshots/top-markets-token-solana-api.png)
 
+### Top Traders (30d)
+
+The app fetches **top traders** via `GET /v4/wallets/top-traders` with `mintAddress`, `resolution=30d`, `sortByDesc=realizedPnlUsd`, `limit=100` (server proxy: `GET /api/wallets/top-traders?…`). The table shows: #, Account, Realized PnL (USD), Trades, Volume (USD), Win rate. Realized PnL and Volume (USD) are shown as full amounts with a leading `$` and trailing ` USD`; no decimals unless the value is less than 10 (then up to 2 decimals). Win rate is shown as value then `%` (e.g. `42%`); 2 decimals only when the value is less than 1. Account addresses link to Solscan in a new tab.
+
 ![Top traders by realized PnL (30d)](screenshots/top-traders-solana-api.png)
+
+### Top Holders
+
+The app fetches **top holders** via `GET /v4/tokens/{mintAddress}/top-holders` (`page=0`, `limit=100`, `sortByDesc=percentageOfSupplyHeld`). The table shows rank, owner, balance, value (USD), and % of supply (top 100 by highest %; updated every 3 hours). Owner addresses link to Solscan in a new tab.
 
 ![Top token holders](screenshots/top-token-holders-solana-api.png)
 
@@ -86,14 +98,6 @@ The app requests data in this order, with 2s delays between stages. Each section
 - **Top 10 programs:** From the trades array, count trades per `programAddress`; sort by count descending; take the first 10. Labels come from `GET /api/programs` and a well-known DEX map (Raydium, Orca, Pump.fun, Meteora, Phoenix, Jupiter, etc.). Each program’s **Top Market** is the market with the most trades for that program; the pair shown is base token / most common quote mint in that market. If the top market’s quote symbol could not be fetched, the app uses the next market (by count) that has a fetchable quote symbol, or shows — if none do. Program and market addresses in the UI link to Solscan in a new tab. Label column width is 30%.
 - **Top 10 quote tokens:** From the trades array, count trades per `quoteMintAddress`; sort by count descending. For display we need a symbol: WSOL and USDC are hardcoded; for the rest we call `GET /api/token-symbol/:mint` only for mints that can appear in the top 10 (first 10 by count, then next batch if some fail or have no symbol). Table columns: Symbol, Mint, Count (Count right-aligned). Mint addresses link to Solscan in a new tab.
 - **Top 10 markets:** From the trades array, count trades per `marketAddress` (see [Vybe Trade History](https://docs.vybenetwork.com/reference/get_trade_data_program_v4)); sort by count descending; take the first 10. For each market, the **Pair** column shows base token / most common quote mint (excluding the token mint). Table columns: Market address, Pair, Count (Count right-aligned). Market addresses link to Solscan (account page) in a new tab.
-
-### Top Traders (30d)
-
-The app fetches **top traders** via `GET /v4/wallets/top-traders` with `mintAddress`, `resolution=30d`, `sortByDesc=realizedPnlUsd`, `limit=100` (server proxy: `GET /api/wallets/top-traders?…`). The table shows: #, Account, Realized PnL (USD), Trades, Volume (USD), Win rate. Realized PnL and Volume (USD) are shown as full amounts with a leading `$` and trailing ` USD`; no decimals unless the value is less than 10 (then up to 2 decimals). Win rate is shown as value then `%` (e.g. `42%`); 2 decimals only when the value is less than 1. Account addresses link to Solscan in a new tab.
-
-### Top Holders
-
-The app fetches **top holders** via `GET /v4/tokens/{mintAddress}/top-holders` (`page=0`, `limit=100`, `sortByDesc=percentageOfSupplyHeld`). The table shows rank, owner, balance, value (USD), and % of supply (top 100 by highest %; updated every 3 hours). Owner addresses link to Solscan in a new tab.
 
 ### Single REST API
 
