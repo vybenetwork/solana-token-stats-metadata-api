@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
 import express from 'express';
 import { spawn } from 'child_process';
 import { createClient } from './api.js';
@@ -7,6 +7,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.join(__dirname, '.env') });
 
 const useTunnel =
   process.env.TUNNEL === '1' ||
@@ -18,6 +19,7 @@ if (!apiKey) {
   console.error('Set VYBE_API_KEY in .env');
   process.exit(1);
 }
+console.log('VYBE_API_KEY loaded (length %d)', apiKey.length);
 
 const app = express();
 const client = createClient(apiKey);
