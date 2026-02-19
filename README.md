@@ -1,7 +1,5 @@
 # Solana Token Stats & Metadata API
 
-**By Eoin Brady** · 2 min read
-
 This repository demonstrates how to use the Vybe Solana Token API to fetch token stats and metadata for any SPL token.
 
 **Retrieve:**
@@ -60,9 +58,26 @@ Retrieve:
 
 For any SPL token mint.
 
+### Fetch sequence (web app)
+
+The app requests data in this order, with 2s delays between stages:
+
+1. **Token details** — `GET /v4/tokens/{mintAddress}`
+2. **Last 1000 trades** — `GET /v4/trades?baseMintAddress=…&limit=1000&sortByDesc=blockTime`
+3. **Trades summary** — from the trades array: count by `programAddress` and by `quoteMintAddress`; sort by count descending; take top 10 programs and top 10 quote mints (see below)
+4. **Programs list** — `GET /api/programs` (DEX labels); merge with well-known program IDs (Raydium, Orca, Pump.fun, etc.)
+5. **Quote symbols** — for the top 10 quote mints only: use hardcoded WSOL/USDC or `GET /api/token-symbol/:mint`; if fewer than 10 have a symbol, fetch the next batch of mints until 10 displayable or none left
+6. **Top holders** — `GET /v4/tokens/{mintAddress}/top-holders?page=0&limit=100&sortByDesc=percentageOfSupplyHeld`
+
+### Last 1000 trades: fetch and top 10 extraction
+
+- **Fetch:** `GET /v4/trades` with `baseMintAddress`, `limit=1000`, `sortByDesc=blockTime` (server proxy: `GET /api/trades?…`).
+- **Top 10 programs:** From the trades array, count trades per `programAddress`; sort by count descending; take the first 10. Labels come from `GET /api/programs` and a well-known DEX map (Raydium, Orca, Pump.fun, Meteora, Phoenix, Jupiter, etc.). Program addresses in the UI link to Solscan in a new tab.
+- **Top 10 quote tokens:** From the trades array, count trades per `quoteMintAddress`; sort by count descending. For display we need a symbol: WSOL and USDC are hardcoded; for the rest we call `GET /api/token-symbol/:mint` only for mints that can appear in the top 10 (first 10 by count, then next batch if some fail or have no symbol). Mint addresses in the UI link to Solscan in a new tab.
+
 ### Top Holders
 
-The app requests data in sequence to space out API calls: (1) **token details** via `GET /v4/tokens/{mintAddress}`, (2) 2s delay, (3) **last 1000 trades** via `GET /v4/trades?baseMintAddress=…&limit=1000&sortByDesc=blockTime`, (4) **programs list** (for DEX labels) and symbol lookup for each unique quote mint (token API or `/api/token-symbol/:mint`), (5) 2s delay, (6) **top holders** via `GET /v4/tokens/{mintAddress}/top-holders` (with `page=0`, `limit=100`, `sortByDesc=percentageOfSupplyHeld`). A **Last 1000 trades summary** section (before the top holders table) shows top 10 programs and top 10 quote tokens; mint and program addresses link to Solscan in a new tab. The top holders table shows rank, owner, balance, value USD, and % of supply (top 100 by highest % of supply; updated every 3 hours); owner addresses link to Solscan in a new tab.
+After the trades summary, the app fetches **top holders** via `GET /v4/tokens/{mintAddress}/top-holders` (`page=0`, `limit=100`, `sortByDesc=percentageOfSupplyHeld`). The table shows rank, owner, balance, value (USD), and % of supply (top 100 by highest %; updated every 3 hours). Owner addresses link to Solscan in a new tab.
 
 ### Single REST API
 
