@@ -71,6 +71,20 @@ app.get('/api/programs', async (_req, res) => {
   }
 });
 
+app.get('/api/wallets/top-traders', async (req, res) => {
+  try {
+    const mintAddress = (req.query.mintAddress || '').trim();
+    if (!mintAddress) return res.status(400).json({ error: 'mintAddress required' });
+    const resolution = req.query.resolution || '30d';
+    const sortByDesc = req.query.sortByDesc || 'realizedPnlUsd';
+    const limit = Math.min(Number(req.query.limit) || 100, 100);
+    const data = await client.getTopTraders(mintAddress, { resolution, sortByDesc, limit });
+    res.json(data);
+  } catch (err) {
+    res.status(err.response?.status || 500).json(err.response?.data || { error: err.message });
+  }
+});
+
 app.get('/api/token-symbol/:mint', async (req, res) => {
   try {
     const mint = (req.params.mint || '').trim();

@@ -1,4 +1,7 @@
 node_modules/
+# Never commit secrets — use .env.example and set .env locally
 .env
+.env.local
+.env.*.local
 .DS_Store
 *.log

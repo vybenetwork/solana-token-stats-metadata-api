@@ -1,14 +1,24 @@
 const mintInput = document.getElementById('mint');
 const fetchAllBtn = document.getElementById('fetchAll');
 const tokenSection = document.getElementById('tokenSection');
+const tokenSectionLoading = document.getElementById('tokenSectionLoading');
+const tokenSectionError = document.getElementById('tokenSectionError');
 const tokenLogo = document.getElementById('tokenLogo');
 const tokenSymbol = document.getElementById('tokenSymbol');
 const tokenName = document.getElementById('tokenName');
 const tokenStats = document.getElementById('tokenStats');
 const tradesSummarySection = document.getElementById('tradesSummarySection');
+const tradesSummaryLoading = document.getElementById('tradesSummaryLoading');
+const tradesSummaryError = document.getElementById('tradesSummaryError');
 const tradesSummaryMeta = document.getElementById('tradesSummaryMeta');
 const tradesSummaryContent = document.getElementById('tradesSummaryContent');
+const topTradersLoading = document.getElementById('topTradersLoading');
+const topTradersError = document.getElementById('topTradersError');
+const topTradersMeta = document.getElementById('topTradersMeta');
+const topTradersBody = document.getElementById('topTradersBody');
 const holdersSection = document.getElementById('holdersSection');
+const holdersLoading = document.getElementById('holdersLoading');
+const holdersError = document.getElementById('holdersError');
 const holdersMeta = document.getElementById('holdersMeta');
 const holdersBody = document.getElementById('holdersBody');
 const errorSection = document.getElementById('errorSection');
@@ -68,6 +78,20 @@ function clearError() {
   errorSection.hidden = true;
 }
 
+function showSectionError(el, res, data) {
+  if (!el) return;
+  el.textContent = data?.code != null ? `Failed (code ${data.code})` : res?.status ? `Failed (${res.status})` : 'Failed';
+  el.hidden = false;
+  el.removeAttribute('aria-hidden');
+}
+
+function hideSectionError(el) {
+  if (!el) return;
+  el.textContent = '';
+  el.hidden = true;
+  el.setAttribute('aria-hidden', 'true');
+}
+
 function formatNum(n) {
   if (n == null) return '—';
   if (typeof n === 'number') {
@@ -77,6 +101,32 @@ function formatNum(n) {
     return n.toFixed(4);
   }
   return String(n);
+}
+
+/** Integer formatting for counts and whole-number values (no decimals). */
+function formatInt(n) {
+  if (n == null) return '—';
+  const num = Number(n);
+  if (Number.isNaN(num)) return '—';
+  if (num >= 1e9) return (num / 1e9).toFixed(2) + 'B';
+  if (num >= 1e6) return (num / 1e6).toFixed(2) + 'M';
+  if (num >= 1e3) return (num / 1e3).toFixed(2) + 'K';
+  return Math.round(num).toLocaleString();
+}
+
+/** Full USD amount: $X,XXX USD or $X.XX USD when value < 10; no decimals unless |value| < 10, max 2 decimals. */
+function formatUsdFull(n) {
+  if (n == null) return '—';
+  const num = Number(n);
+  if (Number.isNaN(num)) return '—';
+  const abs = Math.abs(num);
+  const sign = num < 0 ? '-' : '';
+  if (abs < 10) {
+    const s = num.toFixed(2);
+    return `$${s} USD`;
+  }
+  const rounded = Math.round(num);
+  return `$${sign}${Math.abs(rounded).toLocaleString()} USD`;
 }
 
 /** Price formatting: no trailing zeros. >=1 → 2 decimals (424.00→424, 424.50→424.50); 0.0099 < x < 1 → 4 decimals; ≤0.0099 → up to 12 decimals. */
@@ -123,16 +173,57 @@ fetchAllBtn.addEventListener('click', async () => {
   const mint = mintInput.value.trim();
   if (!mint) return;
   clearError();
+  renderEmptyState();
   fetchAllBtn.disabled = true;
   loadingIndicator.hidden = false;
   loadingIndicator.setAttribute('aria-hidden', 'false');
-  try {
-    // Token details first, then trades + other, then top holders last (to space out requests)
-    const tokenRes = await fetchWithRetry(`/api/tokens/${encodeURIComponent(mint)}`);
-    const tokenData = await tokenRes.json();
-    if (!tokenRes.ok) throw tokenData;
-    renderToken(tokenData);
+  tokenSectionLoading.hidden = false;
+  tradesSummaryLoading.hidden = false;
+  topTradersLoading.hidden = false;
+  holdersLoading.hidden = false;
 
+  let tokenData = null;
+  try {
+    const tokenRes = await fetchWithRetry(`/api/tokens/${encodeURIComponent(mint)}`);
+    const data = await tokenRes.json();
+    if (tokenRes.ok) {
+      tokenData = data;
+      renderToken(tokenData);
+      hideSectionError(tokenSectionError);
+    } else {
+      showSectionError(tokenSectionError, tokenRes, data);
+      try {
+        const symbolRes = await fetchWithRetry(`/api/token-symbol/${encodeURIComponent(mint)}`);
+        const symbolData = symbolRes.ok ? await symbolRes.json() : {};
+        if (symbolData.symbol) {
+          tokenData = { symbol: symbolData.symbol, mintAddress: mint };
+          renderToken(tokenData);
+        }
+        /* keep section error visible so user knows Vybe token API failed */
+      } catch (_) {
+        /* keep section error visible */
+      }
+    }
+  } catch (_) {
+    showSectionError(tokenSectionError, null, null);
+    try {
+      const symbolRes = await fetchWithRetry(`/api/token-symbol/${encodeURIComponent(mint)}`);
+      const symbolData = symbolRes.ok ? await symbolRes.json() : {};
+      if (symbolData.symbol) {
+        tokenData = { symbol: symbolData.symbol, mintAddress: mint };
+        renderToken(tokenData);
+      }
+      /* keep section error visible so user knows primary fetch failed */
+    } catch (_) {
+      /* keep section error visible */
+    }
+  } finally {
+    tokenSectionLoading.hidden = true;
+    tokenSectionLoading.setAttribute('aria-hidden', 'true');
+  }
+
+  try {
+    hideSectionError(tradesSummaryError);
     await new Promise((r) => setTimeout(r, 2000));
 
     const tradesRes = await fetchWithRetry(
@@ -145,16 +236,40 @@ fetchAllBtn.addEventListener('click', async () => {
       const quoteCountByMint = {};
       const programQuoteCounts = {};
       const programTradeCount = {};
+      const programMarketCount = {};
+      const marketCount = {};
+      const marketQuoteCount = {};
+      const baseMint = mint;
       trades.forEach((t) => {
         const q = t.quoteMintAddress;
         const p = t.programAddress;
+        const m = t.marketAddress;
         if (q) quoteCountByMint[q] = (quoteCountByMint[q] || 0) + 1;
         if (p) programTradeCount[p] = (programTradeCount[p] || 0) + 1;
+        if (p && m) {
+          if (!programMarketCount[p]) programMarketCount[p] = {};
+          programMarketCount[p][m] = (programMarketCount[p][m] || 0) + 1;
+        }
+        if (m) {
+          marketCount[m] = (marketCount[m] || 0) + 1;
+          if (q && q !== baseMint) {
+            if (!marketQuoteCount[m]) marketQuoteCount[m] = {};
+            marketQuoteCount[m][q] = (marketQuoteCount[m][q] || 0) + 1;
+          }
+        }
         if (p && q) {
           if (!programQuoteCounts[p]) programQuoteCounts[p] = {};
           programQuoteCounts[p][q] = (programQuoteCounts[p][q] || 0) + 1;
         }
       });
+      const top10Markets = Object.entries(marketCount)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10)
+        .map(([addr, count]) => {
+          const quoteCounts = marketQuoteCount[addr] || {};
+          const bestQuoteMint = Object.entries(quoteCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+          return { marketAddress: addr, count, bestQuoteMint };
+        });
 
       const sortedByCount = Object.entries(quoteCountByMint).sort((a, b) => b[1] - a[1]);
       const quoteSymbols = {};
@@ -189,6 +304,17 @@ fetchAllBtn.addEventListener('click', async () => {
         .sort((a, b) => (programTradeCount[b] ?? 0) - (programTradeCount[a] ?? 0))
         .slice(0, 10);
 
+      const programTopMarkets = {};
+      top10Programs.forEach((addr) => {
+        const byMarket = programMarketCount[addr] || {};
+        const sorted = Object.entries(byMarket).sort((a, b) => b[1] - a[1]);
+        programTopMarkets[addr] = sorted.map(([marketAddress]) => {
+          const quoteCounts = marketQuoteCount[marketAddress] || {};
+          const bestQuoteMint = Object.entries(quoteCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+          return { marketAddress, bestQuoteMint };
+        });
+      });
+
       let programsList = programsCache;
       if (!programsList) {
         try {
@@ -213,29 +339,24 @@ fetchAllBtn.addEventListener('click', async () => {
         if (!programLabels[addr]) programLabels[addr] = WELL_KNOWN_PROGRAMS[addr] || addr;
       });
 
+      const baseSymbol = ((tokenData?.symbol) || '').toUpperCase() || '—';
       renderTradesSummary({
         tradesCount: trades.length,
         uniqueProgramCount: top10Programs.length,
         programLabels,
         uniquePrograms: top10Programs,
         programTradeCount,
+        programTopMarkets,
         quoteSymbols,
         top10QuoteMints: top10QuoteMintsWithSymbol,
+        top10Markets,
+        baseSymbol,
       });
-    } else {
+    }
+    if (!(trades.length > 0)) {
       tradesSummaryMeta.textContent = '—';
       tradesSummaryContent.innerHTML = `
     <div class="trades-summary-grid">
-      <div class="trades-summary-block trades-summary-programs">
-        <h3 class="trades-summary-subtitle">Programs (top 10)</h3>
-        <div class="table-wrap">
-          <table class="trades-summary-table">
-            <colgroup><col class="col-label"><col class="col-address"><col class="col-count"></colgroup>
-            <thead><tr><th>Label</th><th>Program address</th><th>Count</th></tr></thead>
-            <tbody><tr><td>—</td><td>—</td><td>—</td></tr></tbody>
-          </table>
-        </div>
-      </div>
       <div class="trades-summary-block trades-summary-quotes">
         <h3 class="trades-summary-subtitle">Quote tokens (top 10)</h3>
         <div class="table-wrap">
@@ -245,27 +366,117 @@ fetchAllBtn.addEventListener('click', async () => {
           </table>
         </div>
       </div>
+      <div class="trades-summary-block trades-summary-markets">
+        <h3 class="trades-summary-subtitle">Top markets (top 10)</h3>
+        <div class="table-wrap">
+          <table class="trades-summary-table">
+            <thead><tr><th>Market address</th><th>Pair</th><th>Count</th></tr></thead>
+            <tbody><tr><td>—</td><td>—</td><td>—</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="trades-summary-block trades-summary-programs trades-summary-programs-fullrow">
+        <h3 class="trades-summary-subtitle">Programs (top 10)</h3>
+        <div class="table-wrap">
+          <table class="trades-summary-table">
+            <colgroup><col class="col-label"><col class="col-address"><col class="col-top-market"><col class="col-count"></colgroup>
+            <thead><tr><th>Label</th><th>Program address</th><th>Top Market</th><th>Count</th></tr></thead>
+            <tbody><tr><td>—</td><td>—</td><td>—</td><td>—</td></tr></tbody>
+          </table>
+        </div>
+      </div>
     </div>`;
     }
+  } catch (_) {
+    showSectionError(tradesSummaryError, null, null);
+    tradesSummaryMeta.textContent = '—';
+    tradesSummaryContent.innerHTML = `
+    <div class="trades-summary-grid">
+      <div class="trades-summary-block trades-summary-quotes">
+        <h3 class="trades-summary-subtitle">Quote tokens (top 10)</h3>
+        <div class="table-wrap">
+          <table class="trades-summary-table">
+            <thead><tr><th>Symbol</th><th>Mint</th><th>Count</th></tr></thead>
+            <tbody><tr><td>—</td><td>—</td><td>—</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="trades-summary-block trades-summary-markets">
+        <h3 class="trades-summary-subtitle">Top markets (top 10)</h3>
+        <div class="table-wrap">
+          <table class="trades-summary-table">
+            <thead><tr><th>Market address</th><th>Pair</th><th>Count</th></tr></thead>
+            <tbody><tr><td>—</td><td>—</td><td>—</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="trades-summary-block trades-summary-programs trades-summary-programs-fullrow">
+        <h3 class="trades-summary-subtitle">Programs (top 10)</h3>
+        <div class="table-wrap">
+          <table class="trades-summary-table">
+            <colgroup><col class="col-label"><col class="col-address"><col class="col-top-market"><col class="col-count"></colgroup>
+            <thead><tr><th>Label</th><th>Program address</th><th>Top Market</th><th>Count</th></tr></thead>
+            <tbody><tr><td>—</td><td>—</td><td>—</td><td>—</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>`;
+  } finally {
+    tradesSummaryLoading.hidden = true;
+    tradesSummaryLoading.setAttribute('aria-hidden', 'true');
+  }
 
+  try {
     await new Promise((r) => setTimeout(r, 2000));
 
-    const holdersRes = await fetchWithRetry(
-      `/api/tokens/${encodeURIComponent(mint)}/top-holders?page=0&limit=100&sortByDesc=percentageOfSupplyHeld`
-    );
-    const holdersData = await holdersRes.json();
+    const topTradersUrl = `/api/wallets/top-traders?mintAddress=${encodeURIComponent(mint)}&resolution=30d&sortByDesc=realizedPnlUsd&limit=100`;
+    const holdersUrl = `/api/tokens/${encodeURIComponent(mint)}/top-holders?page=0&limit=100&sortByDesc=percentageOfSupplyHeld`;
+    const [topTradersSettled, holdersSettled] = await Promise.allSettled([
+      fetchWithRetry(topTradersUrl),
+      fetchWithRetry(holdersUrl),
+    ]);
+    const topTradersRes = topTradersSettled.status === 'fulfilled' ? topTradersSettled.value : { ok: false };
+    const holdersRes = holdersSettled.status === 'fulfilled' ? holdersSettled.value : { ok: false };
+    hideSectionError(topTradersError);
+    hideSectionError(holdersError);
+    if (!topTradersRes.ok) {
+      const topTradersErrData = await topTradersRes.json?.().catch(() => ({})) ?? {};
+      showSectionError(topTradersError, topTradersRes, topTradersErrData);
+    }
+    if (!holdersRes.ok) {
+      const holdersErrData = await holdersRes.json?.().catch(() => ({})) ?? {};
+      showSectionError(holdersError, holdersRes, holdersErrData);
+    }
+    const topTradersData = topTradersRes.ok ? await topTradersRes.json().catch(() => ({ data: [] })) : { data: [] };
+    const holdersData = holdersRes.ok ? await holdersRes.json().catch(() => ({ data: [] })) : { data: [] };
+    if (topTradersRes.ok && topTradersData.data?.length) {
+      renderTopTraders(topTradersData);
+      hideSectionError(topTradersError);
+    } else {
+      topTradersMeta.textContent = '—';
+      topTradersBody.innerHTML = '<tr><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>';
+    }
+    topTradersLoading.hidden = true;
+    topTradersLoading.setAttribute('aria-hidden', 'true');
     if (holdersRes.ok && holdersData.data?.length) {
       renderHolders(holdersData);
+      hideSectionError(holdersError);
     } else {
       holdersMeta.textContent = '—';
       holdersBody.innerHTML = '<tr><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>';
     }
+    holdersLoading.hidden = true;
+    holdersLoading.setAttribute('aria-hidden', 'true');
   } catch (e) {
     showError(e.message || e);
   } finally {
     fetchAllBtn.disabled = false;
     loadingIndicator.hidden = true;
     loadingIndicator.setAttribute('aria-hidden', 'true');
+    tokenSectionLoading.hidden = true;
+    tradesSummaryLoading.hidden = true;
+    topTradersLoading.hidden = true;
+    holdersLoading.hidden = true;
   }
 });
 
@@ -312,11 +523,14 @@ function renderToken(t) {
     });
   };
 
+  const mintLink = t.mintAddress
+    ? `<a href="${SOLSCAN_TOKEN}${encodeURIComponent(t.mintAddress)}" target="_blank" rel="noopener noreferrer" class="mono" title="${t.mintAddress}">${t.mintAddress}</a>`
+    : '—';
   const overview = {
     icon: tokenSectionIcons.overview,
     title: 'Overview',
     rows: [
-      ['Mint', t.mintAddress],
+      ['Mint', mintLink],
       ['Symbol', sym || '—'],
       ['Decimals', t.decimal ?? t.decimals],
       ['Category', t.category ?? '—'],
@@ -376,11 +590,14 @@ function renderTradesSummary(opts) {
     programLabels,
     uniquePrograms,
     programTradeCount,
+    programTopMarkets = {},
     quoteSymbols,
     top10QuoteMints,
+    top10Markets = [],
+    baseSymbol = '—',
   } = opts;
   const quoteCountWithSymbol = top10QuoteMints.length;
-  tradesSummaryMeta.textContent = `From last ${tradesCount} trades: top ${uniqueProgramCount} program(s) by count. Top ${quoteCountWithSymbol} quote tokens by count (with symbol).`;
+  tradesSummaryMeta.textContent = `From last ${tradesCount} trades: top ${uniqueProgramCount} program(s), top ${quoteCountWithSymbol} quote tokens, top ${top10Markets.length} markets by count.`;
 
   const programRows = uniquePrograms
     .map(
@@ -388,7 +605,15 @@ function renderTradesSummary(opts) {
         const labelCell = hasRealLabel(programLabels, addr) ? programLabels[addr] : '—';
         const count = programTradeCount[addr] ?? 0;
         const link = `<a href="${SOLSCAN_ACCOUNT}${encodeURIComponent(addr)}" target="_blank" rel="noopener noreferrer" class="mono" title="${addr}">${truncateProgramAddress(addr)}</a>`;
-        return `<tr><td>${labelCell}</td><td>${link}</td><td>${count}</td></tr>`;
+        const markets = programTopMarkets[addr] || [];
+        const top = markets.find((m) => !m.bestQuoteMint || hasQuoteSymbol(m.bestQuoteMint, quoteSymbols));
+        let topMarketCell = '—';
+        if (top) {
+          const marketLink = `<a href="${SOLSCAN_ACCOUNT}${encodeURIComponent(top.marketAddress)}" target="_blank" rel="noopener noreferrer" class="mono" title="${top.marketAddress}">${truncateAddress(top.marketAddress)}</a>`;
+          const pairDisplay = top.bestQuoteMint ? `${baseSymbol} / ${quoteDisplay(top.bestQuoteMint, quoteSymbols)}` : '';
+          topMarketCell = pairDisplay ? `${marketLink} (${pairDisplay})` : marketLink;
+        }
+        return `<tr><td>${labelCell}</td><td>${link}</td><td>${topMarketCell}</td><td>${count}</td></tr>`;
       }
     )
     .join('');
@@ -400,19 +625,18 @@ function renderTradesSummary(opts) {
       }
     )
     .join('');
+  const marketRows = top10Markets
+    .map(
+      ({ marketAddress, count, bestQuoteMint }) => {
+        const marketLink = `<a href="${SOLSCAN_ACCOUNT}${encodeURIComponent(marketAddress)}" target="_blank" rel="noopener noreferrer" class="mono" title="${marketAddress}">${truncateAddress(marketAddress)}</a>`;
+        const pairDisplay = bestQuoteMint ? `${baseSymbol} / ${quoteDisplay(bestQuoteMint, quoteSymbols)}` : '—';
+        return `<tr><td>${marketLink}</td><td>${pairDisplay}</td><td>${count}</td></tr>`;
+      }
+    )
+    .join('');
 
   tradesSummaryContent.innerHTML = `
     <div class="trades-summary-grid">
-      <div class="trades-summary-block trades-summary-programs">
-        <h3 class="trades-summary-subtitle">Programs (top 10)</h3>
-        <div class="table-wrap">
-          <table class="trades-summary-table">
-            <colgroup><col class="col-label"><col class="col-address"><col class="col-count"></colgroup>
-            <thead><tr><th>Label</th><th>Program address</th><th>Count</th></tr></thead>
-            <tbody>${programRows}</tbody>
-          </table>
-        </div>
-      </div>
       <div class="trades-summary-block trades-summary-quotes">
         <h3 class="trades-summary-subtitle">Quote tokens (top 10)</h3>
         <div class="table-wrap">
@@ -422,7 +646,59 @@ function renderTradesSummary(opts) {
           </table>
         </div>
       </div>
+      <div class="trades-summary-block trades-summary-markets">
+        <h3 class="trades-summary-subtitle">Top markets (top 10)</h3>
+        <div class="table-wrap">
+          <table class="trades-summary-table">
+            <thead><tr><th>Market address</th><th>Pair</th><th>Count</th></tr></thead>
+            <tbody>${marketRows || '<tr><td>—</td><td>—</td><td>—</td></tr>'}</tbody>
+          </table>
+        </div>
+      </div>
+      <div class="trades-summary-block trades-summary-programs trades-summary-programs-fullrow">
+        <h3 class="trades-summary-subtitle">Programs (top 10)</h3>
+        <div class="table-wrap">
+          <table class="trades-summary-table">
+            <colgroup><col class="col-label"><col class="col-address"><col class="col-top-market"><col class="col-count"></colgroup>
+            <thead><tr><th>Label</th><th>Program address</th><th>Top Market</th><th>Count</th></tr></thead>
+            <tbody>${programRows}</tbody>
+          </table>
+        </div>
+      </div>
     </div>`;
+}
+
+function renderTopTraders(data) {
+  const list = data.data || [];
+  topTradersMeta.textContent = list.length
+    ? `Top 100 traders by realized PnL (30d, this token; ${list.length} shown).`
+    : '—';
+
+  topTradersBody.innerHTML = list.length
+    ? list
+        .map((row, i) => {
+          const rank = i + 1;
+          const addr = row.accountAddress;
+          const display = row.accountName || (addr ? truncateAddress(addr) : '—');
+          const accountLink = addr
+            ? `<a href="${SOLSCAN_ACCOUNT}${encodeURIComponent(addr)}" target="_blank" rel="noopener noreferrer" class="mono" title="${addr}">${display}</a>`
+            : `<span class="mono">${display}</span>`;
+          const m = row.metrics || {};
+          const realizedPnl = m.realizedPnlUsd != null ? formatUsdFull(Number(m.realizedPnlUsd)) : '—';
+          const tradesCount = m.tradesCount != null ? formatInt(Number(m.tradesCount)) : '—';
+          const volumeUsd = m.tradesVolumeUsd != null ? formatUsdFull(Number(m.tradesVolumeUsd)) : '—';
+          const winRate = m.winRate != null ? (Number(m.winRate) < 1 ? `${Number(m.winRate).toFixed(2)}%` : `${Math.round(Number(m.winRate))}%`) : '—';
+          return `<tr>
+        <td>${rank}</td>
+        <td>${accountLink}</td>
+        <td>${realizedPnl}</td>
+        <td>${tradesCount}</td>
+        <td>${volumeUsd}</td>
+        <td>${winRate}</td>
+      </tr>`;
+        })
+        .join('')
+    : '<tr><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>';
 }
 
 function renderHolders(data) {
@@ -484,16 +760,6 @@ function renderEmptyState() {
   tradesSummaryMeta.textContent = '—';
   tradesSummaryContent.innerHTML = `
     <div class="trades-summary-grid">
-      <div class="trades-summary-block trades-summary-programs">
-        <h3 class="trades-summary-subtitle">Programs (top 10)</h3>
-        <div class="table-wrap">
-          <table class="trades-summary-table">
-            <colgroup><col class="col-label"><col class="col-address"><col class="col-count"></colgroup>
-            <thead><tr><th>Label</th><th>Program address</th><th>Count</th></tr></thead>
-            <tbody><tr><td>—</td><td>—</td><td>—</td></tr></tbody>
-          </table>
-        </div>
-      </div>
       <div class="trades-summary-block trades-summary-quotes">
         <h3 class="trades-summary-subtitle">Quote tokens (top 10)</h3>
         <div class="table-wrap">
@@ -503,10 +769,39 @@ function renderEmptyState() {
           </table>
         </div>
       </div>
+      <div class="trades-summary-block trades-summary-markets">
+        <h3 class="trades-summary-subtitle">Top markets (top 10)</h3>
+        <div class="table-wrap">
+          <table class="trades-summary-table">
+            <thead><tr><th>Market address</th><th>Pair</th><th>Count</th></tr></thead>
+            <tbody><tr><td>—</td><td>—</td><td>—</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="trades-summary-block trades-summary-programs trades-summary-programs-fullrow">
+        <h3 class="trades-summary-subtitle">Programs (top 10)</h3>
+        <div class="table-wrap">
+          <table class="trades-summary-table">
+            <colgroup><col class="col-label"><col class="col-address"><col class="col-top-market"><col class="col-count"></colgroup>
+            <thead><tr><th>Label</th><th>Program address</th><th>Top Market</th><th>Count</th></tr></thead>
+            <tbody><tr><td>—</td><td>—</td><td>—</td><td>—</td></tr></tbody>
+          </table>
+        </div>
+      </div>
     </div>`;
 
+  topTradersMeta.textContent = '—';
+  topTradersBody.innerHTML = '<tr><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>';
   holdersMeta.textContent = '—';
   holdersBody.innerHTML = '<tr><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>';
+  tokenSectionLoading.hidden = true;
+  tradesSummaryLoading.hidden = true;
+  topTradersLoading.hidden = true;
+  holdersLoading.hidden = true;
+  hideSectionError(tokenSectionError);
+  hideSectionError(tradesSummaryError);
+  hideSectionError(topTradersError);
+  hideSectionError(holdersError);
 }
 
 renderEmptyState();

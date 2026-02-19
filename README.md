@@ -2,6 +2,10 @@
 
 This repository demonstrates how to use the Vybe Solana Token API to fetch token stats and metadata for any SPL token.
 
+![Token stats, trades summary, and top holders](screenshots/token-stats.png)
+
+*Add a screenshot of the running app to `screenshots/token-stats.png` (or update the path above).*
+
 **Retrieve:**
 
 - Token price
@@ -10,7 +14,8 @@ This repository demonstrates how to use the Vybe Solana Token API to fetch token
 - Holder count
 - Symbol, name, decimals
 - Top holders (top 100; updated every 3 hours)
-- Last 1000 trades summary (top 10 programs, top 10 quote tokens with symbols)
+- Last 1000 trades summary (top 10 programs, top 10 quote tokens, top 10 markets by count)
+- Top traders (top 100 by realized PnL, 30d)
 
 Data is sourced from Pump.fun, Raydium, Orca, and 30+ other Solana DEX programs using vetted market data. When metadata is available from both Pump.fun and PumpSwap, PumpSwap is preferred.
 
@@ -18,7 +23,8 @@ This repo includes:
 
 - Token details (stats and metadata) endpoint
 - Top holders endpoint
-- A browser-based web app (GUI) to browse token stats, last 1000 trades summary, and top holders in one view (quote mint and owner addresses link to Solscan in a new tab)
+- Top traders endpoint (by realized PnL, 30d)
+- A browser-based web app (GUI) to browse token stats, last 1000 trades summary, top traders, and top holders in one view (mint, quote mint, program address, market address, and owner addresses link to Solscan in a new tab; links use a consistent blue style)
 
 ## Why This Matters
 
@@ -37,7 +43,8 @@ This demo uses:
 
 - **Token details / metrics endpoint** — price, market cap, volume, metadata
 - **Top holders endpoint** — top token holders (rank, balance, value USD, % supply)
-- **Trades endpoint** — last 1000 trades to build programs + quote-token summary
+- **Top traders endpoint** — top 100 wallets by realized PnL (30d) for the token
+- **Trades endpoint** — last 1000 trades to build programs, quote tokens, and markets summary
 - **Programs endpoint** — DEX labels for program addresses in the trades summary
 
 ## What You Get
@@ -60,24 +67,29 @@ For any SPL token mint.
 
 ### Fetch sequence (web app)
 
-The app requests data in this order, with 2s delays between stages:
+The app requests data in this order, with 2s delays between stages. Each section has its own loading indicator (spinner + “Loading…” next to the section title); it is hidden when that section’s data is loaded. If a section’s request fails (e.g. 500), a red “Failed (code X)” or “Failed (status)” message appears next to the section title and other sections continue to load.
 
-1. **Token details** — `GET /v4/tokens/{mintAddress}`
+1. **Token details** — `GET /v4/tokens/{mintAddress}`. If this fails, the app falls back to `GET /api/token-symbol/:mint` (Metaplex) and displays symbol + mint; the section error message remains visible so you know the Vybe token API failed.
 2. **Last 1000 trades** — `GET /v4/trades?baseMintAddress=…&limit=1000&sortByDesc=blockTime`
-3. **Trades summary** — from the trades array: count by `programAddress` and by `quoteMintAddress`; sort by count descending; take top 10 programs and top 10 quote mints (see below)
+3. **Trades summary** — from the trades array: count by `programAddress`, `quoteMintAddress`, and `marketAddress`; sort by count descending; take top 10 programs, top 10 quote mints, and top 10 markets (see below)
 4. **Programs list** — `GET /api/programs` (DEX labels); merge with well-known program IDs (Raydium, Orca, Pump.fun, etc.)
 5. **Quote symbols** — for the top 10 quote mints only: use hardcoded WSOL/USDC or `GET /api/token-symbol/:mint`; if fewer than 10 have a symbol, fetch the next batch of mints until 10 displayable or none left
-6. **Top holders** — `GET /v4/tokens/{mintAddress}/top-holders?page=0&limit=100&sortByDesc=percentageOfSupplyHeld`
+6. **Top traders and top holders** (in parallel) — `GET /v4/wallets/top-traders?mintAddress=…&resolution=30d&sortByDesc=realizedPnlUsd&limit=100` and `GET /v4/tokens/{mintAddress}/top-holders?page=0&limit=100&sortByDesc=percentageOfSupplyHeld`
 
 ### Last 1000 trades: fetch and top 10 extraction
 
 - **Fetch:** `GET /v4/trades` with `baseMintAddress`, `limit=1000`, `sortByDesc=blockTime` (server proxy: `GET /api/trades?…`).
-- **Top 10 programs:** From the trades array, count trades per `programAddress`; sort by count descending; take the first 10. Labels come from `GET /api/programs` and a well-known DEX map (Raydium, Orca, Pump.fun, Meteora, Phoenix, Jupiter, etc.). Program addresses in the UI link to Solscan in a new tab.
-- **Top 10 quote tokens:** From the trades array, count trades per `quoteMintAddress`; sort by count descending. For display we need a symbol: WSOL and USDC are hardcoded; for the rest we call `GET /api/token-symbol/:mint` only for mints that can appear in the top 10 (first 10 by count, then next batch if some fail or have no symbol). Mint addresses in the UI link to Solscan in a new tab.
+- **Top 10 programs:** From the trades array, count trades per `programAddress`; sort by count descending; take the first 10. Labels come from `GET /api/programs` and a well-known DEX map (Raydium, Orca, Pump.fun, Meteora, Phoenix, Jupiter, etc.). Each program’s **Top Market** is the market with the most trades for that program; the pair shown is base token / most common quote mint in that market. If the top market’s quote symbol could not be fetched, the app uses the next market (by count) that has a fetchable quote symbol, or shows — if none do. Program and market addresses in the UI link to Solscan in a new tab. Label column width is 30%.
+- **Top 10 quote tokens:** From the trades array, count trades per `quoteMintAddress`; sort by count descending. For display we need a symbol: WSOL and USDC are hardcoded; for the rest we call `GET /api/token-symbol/:mint` only for mints that can appear in the top 10 (first 10 by count, then next batch if some fail or have no symbol). Table columns: Symbol, Mint, Count (Count right-aligned). Mint addresses link to Solscan in a new tab.
+- **Top 10 markets:** From the trades array, count trades per `marketAddress` (see [Vybe Trade History](https://docs.vybenetwork.com/reference/get_trade_data_program_v4)); sort by count descending; take the first 10. For each market, the **Pair** column shows base token / most common quote mint (excluding the token mint). Table columns: Market address, Pair, Count (Count right-aligned). Market addresses link to Solscan (account page) in a new tab.
+
+### Top Traders (30d)
+
+The app fetches **top traders** via `GET /v4/wallets/top-traders` with `mintAddress`, `resolution=30d`, `sortByDesc=realizedPnlUsd`, `limit=100` (server proxy: `GET /api/wallets/top-traders?…`). The table shows: #, Account, Realized PnL (USD), Trades, Volume (USD), Win rate. Realized PnL and Volume (USD) are shown as full amounts with a leading `$` and trailing ` USD`; no decimals unless the value is less than 10 (then up to 2 decimals). Win rate is shown as value then `%` (e.g. `42%`); 2 decimals only when the value is less than 1. Account addresses link to Solscan in a new tab.
 
 ### Top Holders
 
-After the trades summary, the app fetches **top holders** via `GET /v4/tokens/{mintAddress}/top-holders` (`page=0`, `limit=100`, `sortByDesc=percentageOfSupplyHeld`). The table shows rank, owner, balance, value (USD), and % of supply (top 100 by highest %; updated every 3 hours). Owner addresses link to Solscan in a new tab.
+The app fetches **top holders** via `GET /v4/tokens/{mintAddress}/top-holders` (`page=0`, `limit=100`, `sortByDesc=percentageOfSupplyHeld`). The table shows rank, owner, balance, value (USD), and % of supply (top 100 by highest %; updated every 3 hours). Owner addresses link to Solscan in a new tab.
 
 ### Single REST API
 
@@ -92,12 +104,14 @@ Use one Solana token API to retrieve:
 The included web app allows you to:
 
 - Enter a token mint
-- Click **Load Token Metadata & Top Holders** to load data: the app fetches token details, then last 1000 trades (and builds the programs + quote-token summary), then top holders (with 2s delays between)
-- View token stats (price, market cap, volume 24h, holders) and metadata (symbol, name, decimals)
-- View **Last 1000 trades summary**: top 10 programs and top 10 quote tokens (mint and program addresses open Solscan in a new tab)
+- Click **Load Token Metadata & Top Holders** to load data: the app fetches token details (with Metaplex symbol fallback if Vybe token API fails), then last 1000 trades (and builds the programs, quote-token, and markets summary), then top traders and top holders in parallel (with 2s delays between stages)
+- See per-section loading (spinner + “Loading…” next to each section title) until that section’s data is loaded; if a section fails, a red “Failed (code X)” or “Failed (status)” appears next to the title and other sections still load
+- View token stats (price, market cap, volume 24h, holders) and metadata (symbol, name, decimals); Overview shows the full mint address (linked to Solscan)
+- View **Last 1000 trades summary**: top 10 quote tokens and top 10 markets on the first row, then **Programs (top 10)** on its own row with Label, Program address, Top Market (market + pair), and Count
+- View **Top traders (by realized PnL, 30d)**: #, Account, Realized PnL (USD), Trades, Volume (USD), Win rate
 - View top 100 holders (owner addresses open Solscan in a new tab)
 
-When metadata is available from both Pump.fun and PumpSwap, PumpSwap’s result is preferred. All data is fetched from the Vybe Solana Token API.
+When metadata is available from both Pump.fun and PumpSwap, PumpSwap’s result is preferred. All data is fetched from the Vybe Solana Token API (and Metaplex for symbol fallback when token details fail).
 
 ## Get a Free API Key
 
@@ -152,7 +166,7 @@ Open:
 
 **http://localhost:3000**
 
-Enter a token mint and click **Load Token Metadata & Top Holders** to see token stats, metadata, and top holders (when the API returns data, e.g. for Pump.fun / PumpSwap tokens).
+Enter a token mint and click **Load Token Metadata & Top Holders**. The view resets to placeholders (—) and then loads token stats, last 1000 trades summary (programs, quote tokens, markets), top traders (30d), and top holders. Each section shows its own loading state and, on failure, a red “Failed (code X)” or “Failed (status)” next to the section title while other sections continue to load.
 
 ### 6. (Optional) Run with Cloudflare Tunnel
 
@@ -257,11 +271,26 @@ Returns the last 1000 trades for a base token. Used to build the **Last 1000 tra
 
 Returns the list of DEX programs used to label program addresses in the trades summary. The app merges this with well-known program IDs (Raydium, Orca, Pump.fun, Meteora, Phoenix, Jupiter, etc.) when the API does not return a label.
 
-### 5️⃣ Token symbol (server)
+### 5️⃣ Top Traders
+
+**`GET /v4/wallets/top-traders`** (proxied as **`GET /api/wallets/top-traders`**)
+
+Returns the top 100 wallets by realized PnL for a token over 30 days. Used in the **Top traders (by realized PnL, 30d)** section.
+
+| Parameter   | Required | Description |
+|-------------|----------|-------------|
+| mintAddress | Yes      | Token mint (query) |
+| resolution  | No       | Default `30d` |
+| sortByDesc  | No       | Default `realizedPnlUsd` |
+| limit       | No       | Default/max 100 |
+
+- [Top Traders (API reference)](https://docs.vybenetwork.com/reference/get_top_traders_v4)
+
+### 6️⃣ Token symbol (server)
 
 **`GET /api/token-symbol/:mint`**
 
-Returns the symbol for a mint (Vybe token API + Metaplex metadata fallback). Used to show quote token symbols in the trades summary. Optional env: `SOLANA_RPC_URL` for Metaplex RPC (default: public mainnet).
+Returns the symbol for a mint (Metaplex metadata). Used for quote token symbols in the trades summary and as a fallback when the Vybe token-details request fails (so the app can still show symbol + mint). Optional env: `SOLANA_RPC_URL` for Metaplex RPC (default: public mainnet).
 
 ## Code Example
 

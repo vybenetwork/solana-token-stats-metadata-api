@@ -85,6 +85,49 @@ header h1 {
   display: none !important;
 }
 
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  min-height: 1.5em;
+}
+
+.section-header h2 {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.section-loading {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1rem;
+  color: #a1a1aa;
+  line-height: 1.5;
+  margin-bottom: 13px;
+  margin-left: 13px;
+}
+
+.section-loading[hidden] {
+  display: none !important;
+}
+
+.section-error {
+  display: inline-block;
+  font-size: 0.9rem;
+  color: #f87171;
+  border: 3px solid #f87171;
+  border-radius: 3px;
+  padding: 0.25rem 0.5rem;
+  margin-left: 13px;
+  margin-bottom: 13px;
+}
+
+.section-error[hidden] {
+  display: none !important;
+}
+
 .loading-spinner {
   display: inline-block;
   width: 1rem;
@@ -233,6 +276,15 @@ button:active {
   word-break: break-all;
 }
 
+.token-section a {
+  color: #3b82f6;
+  text-decoration: none;
+}
+
+.token-section a:hover {
+  text-decoration: none;
+}
+
 .meta {
   font-size: 0.85rem;
   color: #a1a1aa;
@@ -241,12 +293,16 @@ button:active {
 
 .trades-summary-grid {
   display: grid;
-  grid-template-columns: 1.2fr 0.8fr;
+  grid-template-columns: 1fr 1fr;
   gap: 1.25rem;
   align-items: start;
 }
 
-@media (max-width: 640px) {
+.trades-summary-programs-fullrow {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 900px) {
   .trades-summary-grid {
     grid-template-columns: 1fr;
   }
@@ -269,7 +325,11 @@ button:active {
 }
 
 .trades-summary-programs table col.col-label {
-  width: 52%;
+  width: 30%;
+}
+
+.trades-summary-programs table col.col-top-market {
+  min-width: 12rem;
 }
 
 .trades-summary-programs table col.col-count {
@@ -278,7 +338,7 @@ button:active {
 
 .trades-summary-programs table th:first-child,
 .trades-summary-programs table td:first-child {
-  width: 52%;
+  width: 30%;
   box-sizing: border-box;
 }
 
@@ -293,6 +353,10 @@ button:active {
 
 .trades-summary-programs table td:nth-child(2) {
   min-width: 0;
+}
+
+.trades-summary-programs table td:nth-child(3) {
+  white-space: nowrap;
 }
 
 .trades-summary-programs a {
@@ -314,6 +378,44 @@ button:active {
 }
 
 .trades-summary-quotes {
+  min-width: 0;
+}
+
+.trades-summary-block.trades-summary-quotes .trades-summary-table th:last-child,
+.trades-summary-block.trades-summary-quotes .trades-summary-table td:last-child {
+  text-align: right;
+}
+
+.trades-summary-block.trades-summary-markets .trades-summary-table th:last-child,
+.trades-summary-block.trades-summary-markets .trades-summary-table td:last-child {
+  text-align: right;
+}
+
+.trades-summary-markets .trades-summary-table th:first-child,
+.trades-summary-markets .trades-summary-table td:first-child {
+  width: 42%;
+  box-sizing: border-box;
+}
+
+.trades-summary-markets a {
+  color: #3b82f6;
+  text-decoration: none;
+}
+
+.trades-summary-markets a:hover {
+  text-decoration: none;
+}
+
+.top-traders-section a {
+  color: #3b82f6;
+  text-decoration: none;
+}
+
+.top-traders-section a:hover {
+  text-decoration: none;
+}
+
+.trades-summary-markets {
   min-width: 0;
 }
 

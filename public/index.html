@@ -28,39 +28,95 @@
     </section>
 
     <section class="token-section panel" id="tokenSection">
-      <h2>Token stats & metadata</h2>
-      <div class="token-header">
-        <img id="tokenLogo" alt="" class="token-logo" style="display:none" />
-        <div>
-          <span id="tokenSymbol" class="symbol">—</span>
-          <span id="tokenName" class="name">—</span>
+      <div class="section-header">
+        <h2>Token stats & metadata</h2>
+        <div class="section-loading" id="tokenSectionLoading" hidden aria-hidden="true">
+          <span class="loading-spinner"></span>
+          <span class="loading-text">Loading…</span>
         </div>
+        <span class="section-error" id="tokenSectionError" hidden aria-hidden="true"></span>
       </div>
-      <div class="token-stats-groups" id="tokenStats"></div>
+      <div class="token-section-content" id="tokenSectionContent">
+        <div class="token-header">
+          <img id="tokenLogo" alt="" class="token-logo" style="display:none" />
+          <div>
+            <span id="tokenSymbol" class="symbol">—</span>
+            <span id="tokenName" class="name">—</span>
+          </div>
+        </div>
+        <div class="token-stats-groups" id="tokenStats"></div>
+      </div>
     </section>
 
     <section class="trades-summary-section panel" id="tradesSummarySection">
-      <h2>Last 1000 trades summary</h2>
-      <p class="meta" id="tradesSummaryMeta">—</p>
-      <div id="tradesSummaryContent"></div>
+      <div class="section-header">
+        <h2>Last 1000 trades summary</h2>
+        <div class="section-loading" id="tradesSummaryLoading" hidden aria-hidden="true">
+          <span class="loading-spinner"></span>
+          <span class="loading-text">Loading…</span>
+        </div>
+        <span class="section-error" id="tradesSummaryError" hidden aria-hidden="true"></span>
+      </div>
+      <div class="trades-summary-content" id="tradesSummaryContentWrap">
+        <p class="meta" id="tradesSummaryMeta">—</p>
+        <div id="tradesSummaryContent"></div>
+      </div>
+    </section>
+
+    <section class="top-traders-section panel" id="topTradersSection">
+      <div class="section-header">
+        <h2>Top traders (by realized PnL, 30d)</h2>
+        <div class="section-loading" id="topTradersLoading" hidden aria-hidden="true">
+          <span class="loading-spinner"></span>
+          <span class="loading-text">Loading…</span>
+        </div>
+        <span class="section-error" id="topTradersError" hidden aria-hidden="true"></span>
+      </div>
+      <div class="top-traders-content" id="topTradersContentWrap">
+        <p class="meta" id="topTradersMeta">—</p>
+        <div class="table-wrap">
+          <table id="topTradersTable">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Account</th>
+                <th>Realized PnL (USD)</th>
+                <th>Trades</th>
+                <th>Volume (USD)</th>
+                <th>Win rate</th>
+              </tr>
+            </thead>
+            <tbody id="topTradersBody"></tbody>
+          </table>
+        </div>
+      </div>
     </section>
 
     <section class="holders-section panel" id="holdersSection">
-      <h2>Top 100 holders (by % supply)</h2>
-      <p class="meta" id="holdersMeta"></p>
-      <div class="table-wrap">
-        <table id="holdersTable">
-          <thead>
-            <tr>
-              <th>Rank</th>
-              <th>Owner</th>
-              <th>Balance</th>
-              <th>Value (USD)</th>
-              <th>% supply</th>
-            </tr>
-          </thead>
-          <tbody id="holdersBody"></tbody>
-        </table>
+      <div class="section-header">
+        <h2>Top 100 holders (by % supply)</h2>
+        <div class="section-loading" id="holdersLoading" hidden aria-hidden="true">
+          <span class="loading-spinner"></span>
+          <span class="loading-text">Loading…</span>
+        </div>
+        <span class="section-error" id="holdersError" hidden aria-hidden="true"></span>
+      </div>
+      <div class="holders-content" id="holdersContentWrap">
+        <p class="meta" id="holdersMeta"></p>
+        <div class="table-wrap">
+          <table id="holdersTable">
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Owner</th>
+                <th>Balance</th>
+                <th>Value (USD)</th>
+                <th>% supply</th>
+              </tr>
+            </thead>
+            <tbody id="holdersBody"></tbody>
+          </table>
+        </div>
       </div>
     </section>
 

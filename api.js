@@ -90,5 +90,20 @@ export function createClient(apiKey) {
         return { data: [] };
       }
     },
+
+    /**
+     * Top traders for a token by realized PnL.
+     * @see https://docs.vybenetwork.com/reference/get_top_traders_v4
+     */
+    async getTopTraders(mintAddress, options = {}) {
+      const { resolution = '30d', sortByDesc = 'realizedPnlUsd', limit = 100 } = options;
+      return withRetry(async () => {
+        const { data } = await axios.get(`${BASE}/v4/wallets/top-traders`, {
+          ...config,
+          params: { resolution, mintAddress, sortByDesc, limit },
+        });
+        return data;
+      });
+    },
   };
 }
