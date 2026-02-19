@@ -301,7 +301,16 @@ button:active {
 }
 
 .trades-summary-programs a:hover {
-  text-decoration: underline;
+  text-decoration: none;
+}
+
+.trades-summary-quotes a {
+  color: #3b82f6;
+  text-decoration: none;
+}
+
+.trades-summary-quotes a:hover {
+  text-decoration: none;
 }
 
 .trades-summary-quotes {
@@ -345,6 +354,15 @@ th {
 
 tr:hover td {
   background: #27272a;
+}
+
+.holders-section a {
+  color: #3b82f6;
+  text-decoration: none;
+}
+
+.holders-section a:hover {
+  text-decoration: none;
 }
 
 td .mono {
