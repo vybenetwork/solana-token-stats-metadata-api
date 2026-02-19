@@ -132,28 +132,33 @@ fetchAllBtn.addEventListener('click', async () => {
         }
       });
 
-      const uniqueQuoteMints = [...new Set(trades.map((t) => t.quoteMintAddress).filter(Boolean))];
+      const sortedByCount = Object.entries(quoteCountByMint).sort((a, b) => b[1] - a[1]);
       const quoteSymbols = {};
-      for (const m of uniqueQuoteMints) {
-        if (HARDCODED_QUOTE_SYMBOLS[m]) {
-          quoteSymbols[m] = HARDCODED_QUOTE_SYMBOLS[m];
-          continue;
+      const displayList = [];
+      let idx = 0;
+      while (displayList.length < 10 && idx < sortedByCount.length) {
+        const batch = sortedByCount.slice(idx, idx + 10);
+        for (const [mint, count] of batch) {
+          if (HARDCODED_QUOTE_SYMBOLS[mint]) {
+            quoteSymbols[mint] = HARDCODED_QUOTE_SYMBOLS[mint];
+          } else {
+            try {
+              const r = await fetch(`/api/token-symbol/${encodeURIComponent(mint)}`);
+              const d = r.ok ? await r.json() : {};
+              quoteSymbols[mint] = d.symbol || mint;
+            } catch {
+              quoteSymbols[mint] = mint;
+            }
+            await new Promise((r) => setTimeout(r, 300));
+          }
+          if (hasQuoteSymbol(mint, quoteSymbols)) {
+            displayList.push({ mint, count });
+            if (displayList.length >= 10) break;
+          }
         }
-        try {
-          const r = await fetch(`/api/token-symbol/${encodeURIComponent(m)}`);
-          const d = r.ok ? await r.json() : {};
-          quoteSymbols[m] = d.symbol || m;
-        } catch {
-          quoteSymbols[m] = m;
-        }
-        await new Promise((r) => setTimeout(r, 1000));
+        idx += 10;
       }
-
-      const top10QuoteMintsWithSymbol = Object.entries(quoteCountByMint)
-        .filter(([m]) => hasQuoteSymbol(m, quoteSymbols))
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 10)
-        .map(([mint, count]) => ({ mint, count }));
+      const top10QuoteMintsWithSymbol = displayList.slice(0, 10);
 
       const uniquePrograms = [...new Set(trades.map((t) => t.programAddress).filter(Boolean))];
       const top10Programs = uniquePrograms
