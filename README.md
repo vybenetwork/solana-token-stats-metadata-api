@@ -12,6 +12,7 @@ This repository demonstrates how to use the Vybe Solana Token API to fetch token
 - Holder count
 - Symbol, name, decimals
 - Top holders (top 100; updated every 3 hours)
+- Last 1000 trades summary (top 10 programs, top 10 quote tokens with symbols)
 
 Data is sourced from Pump.fun, Raydium, Orca, and 30+ other Solana DEX programs using vetted market data. When metadata is available from both Pump.fun and PumpSwap, PumpSwap is preferred.
 
@@ -19,7 +20,7 @@ This repo includes:
 
 - Token details (stats and metadata) endpoint
 - Top holders endpoint
-- A browser-based web app (GUI) to browse token stats, last 100 trades summary, and top holders in one view
+- A browser-based web app (GUI) to browse token stats, last 1000 trades summary, and top holders in one view (quote mint and owner addresses link to Solscan in a new tab)
 
 ## Why This Matters
 
@@ -38,6 +39,8 @@ This demo uses:
 
 - **Token details / metrics endpoint** — price, market cap, volume, metadata
 - **Top holders endpoint** — top token holders (rank, balance, value USD, % supply)
+- **Trades endpoint** — last 1000 trades to build programs + quote-token summary
+- **Programs endpoint** — DEX labels for program addresses in the trades summary
 
 ## What You Get
 
@@ -59,7 +62,7 @@ For any SPL token mint.
 
 ### Top Holders
 
-The app requests data in sequence to space out API calls: (1) **top holders** via `GET /v4/tokens/{mintAddress}/top-holders` (with `page=0`, `limit=100`, `sortByDesc=percentageOfSupplyHeld`), (2) 2s delay, (3) **token details** via `GET /v4/tokens/{mintAddress}`, (4) 2s delay, (5) **last 100 trades** via `GET /v4/trades?baseMintAddress=…&limit=100&sortByDesc=blockTime`, (6) **programs list** (for DEX labels) and token details for each unique quote mint (to show symbols). A **Last 100 trades summary** section (before the top holders table) shows counts of unique program addresses (labeled from the programs API and well-known DEX names) and unique quote tokens (with symbol from token details). The top holders table shows rank, owner, balance, value USD, and % of supply (top 100 by highest % of supply; updated every 3 hours).
+The app requests data in sequence to space out API calls: (1) **token details** via `GET /v4/tokens/{mintAddress}`, (2) 2s delay, (3) **last 1000 trades** via `GET /v4/trades?baseMintAddress=…&limit=1000&sortByDesc=blockTime`, (4) **programs list** (for DEX labels) and symbol lookup for each unique quote mint (token API or `/api/token-symbol/:mint`), (5) 2s delay, (6) **top holders** via `GET /v4/tokens/{mintAddress}/top-holders` (with `page=0`, `limit=100`, `sortByDesc=percentageOfSupplyHeld`). A **Last 1000 trades summary** section (before the top holders table) shows top 10 programs and top 10 quote tokens; mint and program addresses link to Solscan in a new tab. The top holders table shows rank, owner, balance, value USD, and % of supply (top 100 by highest % of supply; updated every 3 hours); owner addresses link to Solscan in a new tab.
 
 ### Single REST API
 
@@ -74,10 +77,10 @@ Use one Solana token API to retrieve:
 The included web app allows you to:
 
 - Enter a token mint
-- Click **Load Token Metadata & Top Holders** to load data: the app fetches top holders, then token stats and metadata, then last 100 trades and builds a trades summary (unique programs and quote tokens with symbols)
+- Click **Load Token Metadata & Top Holders** to load data: the app fetches token details, then last 1000 trades (and builds the programs + quote-token summary), then top holders (with 2s delays between)
 - View token stats (price, market cap, volume 24h, holders) and metadata (symbol, name, decimals)
-- View **Last 100 trades summary**: unique program addresses (with DEX labels) and unique quote mints (with symbols)
-- View top holders when the API returns data (e.g. for tokens on Pump.fun / PumpSwap)
+- View **Last 1000 trades summary**: top 10 programs and top 10 quote tokens (mint and program addresses open Solscan in a new tab)
+- View top 100 holders (owner addresses open Solscan in a new tab)
 
 When metadata is available from both Pump.fun and PumpSwap, PumpSwap’s result is preferred. All data is fetched from the Vybe Solana Token API.
 
@@ -93,7 +96,7 @@ You’ll need a Vybe API key to run this demo.
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/your-org/solana-token-stats-metadata-api.git
+git clone https://github.com/vybenetwork/solana-token-stats-metadata-api.git
 cd solana-token-stats-metadata-api
 ```
 
@@ -221,25 +224,29 @@ Returns the top 100 token holders sorted by highest percentage of supply (update
 
 - [Top Holders (API reference)](https://docs.vybenetwork.com/reference/get_top_holders_v4)
 
-### 3️⃣ Last 100 Trades
+### 3️⃣ Last 1000 Trades
 
 **`GET /v4/trades`**
 
-Returns the last 100 trades for a base token (e.g. the token mint). Used to build the **Last 100 trades summary** (unique program addresses and unique quote tokens with symbols).
+Returns the last 1000 trades for a base token. Used to build the **Last 1000 trades summary** (top 10 programs and top 10 quote tokens with symbols). The server proxies this as **`GET /api/trades?baseMintAddress=…&limit=1000&sortByDesc=blockTime`**.
 
 | Parameter        | Required | Description |
 |------------------|----------|-------------|
 | baseMintAddress  | Yes      | Base token mint (query) |
-| limit            | No       | Default 100, max 100 |
+| limit            | No       | Default/max 1000 |
 | sortByDesc       | No       | e.g. `blockTime` |
-
-Proxy: **`GET /api/trades?baseMintAddress=…&limit=100&sortByDesc=blockTime`**
 
 ### 4️⃣ Programs (DEX list)
 
 **`GET /api/programs`**
 
 Returns the list of DEX programs used to label program addresses in the trades summary. The app merges this with well-known program IDs (Raydium, Orca, Pump.fun, Meteora, Phoenix, Jupiter, etc.) when the API does not return a label.
+
+### 5️⃣ Token symbol (server)
+
+**`GET /api/token-symbol/:mint`**
+
+Returns the symbol for a mint (Vybe token API + Metaplex metadata fallback). Used to show quote token symbols in the trades summary. Optional env: `SOLANA_RPC_URL` for Metaplex RPC (default: public mainnet).
 
 ## Code Example
 

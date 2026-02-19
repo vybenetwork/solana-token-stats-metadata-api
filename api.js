@@ -2,17 +2,24 @@ import axios from 'axios';
 
 const BASE = 'https://api.vybenetwork.xyz';
 const TIMEOUT_MS = 60_000; // 60s for Vybe API requests
-const MAX_403_RETRIES = 5;
+const MAX_RETRIES = 5;
 const RETRY_DELAY_MS = 2000;
 
-async function with403Retry(fn) {
+function shouldRetry(err) {
+  if (err.response?.status === 403) return true;
+  if (err.code === 'ECONNABORTED') return true;
+  if (err.message?.toLowerCase().includes('timeout')) return true;
+  return false;
+}
+
+async function withRetry(fn) {
   let lastErr;
-  for (let attempt = 0; attempt <= MAX_403_RETRIES; attempt++) {
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
       return await fn();
     } catch (err) {
       lastErr = err;
-      if (err.response?.status === 403 && attempt < MAX_403_RETRIES) {
+      if (shouldRetry(err) && attempt < MAX_RETRIES) {
         await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
         continue;
       }
@@ -31,7 +38,7 @@ export function createClient(apiKey) {
 
   return {
     async getToken(mintAddress) {
-      return with403Retry(async () => {
+      return withRetry(async () => {
         const { data } = await axios.get(`${BASE}/v4/tokens/${mintAddress}`, config);
         return data;
       });
@@ -46,7 +53,7 @@ export function createClient(apiKey) {
       const params = { limit, page };
       if (sortByAsc) params.sortByAsc = sortByAsc;
       if (sortByDesc) params.sortByDesc = sortByDesc;
-      return with403Retry(async () => {
+      return withRetry(async () => {
         const { data } = await axios.get(`${BASE}/v4/tokens/${mintAddress}/top-holders`, {
           ...config,
           params,
@@ -61,7 +68,7 @@ export function createClient(apiKey) {
      */
     async getTrades(baseMintAddress, options = {}) {
       const { limit = 100, sortByDesc = 'blockTime' } = options;
-      return with403Retry(async () => {
+      return withRetry(async () => {
         const { data } = await axios.get(`${BASE}/v4/trades`, {
           ...config,
           params: { baseMintAddress, limit, sortByDesc },
@@ -75,7 +82,7 @@ export function createClient(apiKey) {
      */
     async getPrograms() {
       try {
-        return await with403Retry(async () => {
+        return await withRetry(async () => {
           const { data } = await axios.get(`${BASE}/v4/programs`, config);
           return data;
         });

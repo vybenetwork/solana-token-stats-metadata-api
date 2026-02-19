@@ -95,6 +95,30 @@ function formatPrice(n) {
 
 const loadingIndicator = document.getElementById('loadingIndicator');
 
+const MAX_FETCH_RETRIES = 5;
+const FETCH_RETRY_DELAY_MS = 2000;
+
+async function fetchWithRetry(url, options = {}) {
+  let lastErr;
+  for (let attempt = 0; attempt <= MAX_FETCH_RETRIES; attempt++) {
+    try {
+      const res = await fetch(url, options);
+      if (res.status === 502 || res.status === 503 || res.status === 504) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+      return res;
+    } catch (err) {
+      lastErr = err;
+      if (attempt < MAX_FETCH_RETRIES) {
+        await new Promise((r) => setTimeout(r, FETCH_RETRY_DELAY_MS));
+        continue;
+      }
+      throw lastErr;
+    }
+  }
+  throw lastErr;
+}
+
 fetchAllBtn.addEventListener('click', async () => {
   const mint = mintInput.value.trim();
   if (!mint) return;
@@ -104,14 +128,14 @@ fetchAllBtn.addEventListener('click', async () => {
   loadingIndicator.setAttribute('aria-hidden', 'false');
   try {
     // Token details first, then trades + other, then top holders last (to space out requests)
-    const tokenRes = await fetch(`/api/tokens/${encodeURIComponent(mint)}`);
+    const tokenRes = await fetchWithRetry(`/api/tokens/${encodeURIComponent(mint)}`);
     const tokenData = await tokenRes.json();
     if (!tokenRes.ok) throw tokenData;
     renderToken(tokenData);
 
     await new Promise((r) => setTimeout(r, 2000));
 
-    const tradesRes = await fetch(
+    const tradesRes = await fetchWithRetry(
       `/api/trades?baseMintAddress=${encodeURIComponent(mint)}&limit=1000&sortByDesc=blockTime`
     );
     const tradesData = tradesRes.ok ? await tradesRes.json() : { data: [] };
@@ -143,7 +167,7 @@ fetchAllBtn.addEventListener('click', async () => {
             quoteSymbols[mint] = HARDCODED_QUOTE_SYMBOLS[mint];
           } else {
             try {
-              const r = await fetch(`/api/token-symbol/${encodeURIComponent(mint)}`);
+              const r = await fetchWithRetry(`/api/token-symbol/${encodeURIComponent(mint)}`);
               const d = r.ok ? await r.json() : {};
               quoteSymbols[mint] = d.symbol || mint;
             } catch {
@@ -168,7 +192,7 @@ fetchAllBtn.addEventListener('click', async () => {
       let programsList = programsCache;
       if (!programsList) {
         try {
-          const progRes = await fetch('/api/programs');
+          const progRes = await fetchWithRetry('/api/programs');
           programsList = progRes.ok ? await progRes.json() : { data: [] };
           programsCache = programsList;
         } catch {
@@ -226,7 +250,7 @@ fetchAllBtn.addEventListener('click', async () => {
 
     await new Promise((r) => setTimeout(r, 2000));
 
-    const holdersRes = await fetch(
+    const holdersRes = await fetchWithRetry(
       `/api/tokens/${encodeURIComponent(mint)}/top-holders?page=0&limit=100&sortByDesc=percentageOfSupplyHeld`
     );
     const holdersData = await holdersRes.json();
