@@ -2,6 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import { spawn } from 'child_process';
 import { createClient } from './api.js';
+import { getTokenSymbol } from './token-symbol.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -45,6 +46,39 @@ app.get('/api/tokens/:mint/top-holders', async (req, res) => {
     res.json(data);
   } catch (err) {
     res.status(err.response?.status || 500).json(err.response?.data || { error: err.message });
+  }
+});
+
+app.get('/api/trades', async (req, res) => {
+  try {
+    const baseMintAddress = (req.query.baseMintAddress || '').trim();
+    if (!baseMintAddress) return res.status(400).json({ error: 'baseMintAddress required' });
+    const limit = Math.min(Number(req.query.limit) || 1000, 1000);
+    const sortByDesc = req.query.sortByDesc || 'blockTime';
+    const data = await client.getTrades(baseMintAddress, { limit, sortByDesc });
+    res.json(data);
+  } catch (err) {
+    res.status(err.response?.status || 500).json(err.response?.data || { error: err.message });
+  }
+});
+
+app.get('/api/programs', async (_req, res) => {
+  try {
+    const data = await client.getPrograms();
+    res.json(data);
+  } catch (err) {
+    res.status(err.response?.status || 500).json(err.response?.data || { error: err.message });
+  }
+});
+
+app.get('/api/token-symbol/:mint', async (req, res) => {
+  try {
+    const mint = (req.params.mint || '').trim();
+    if (!mint) return res.status(400).json({ error: 'Mint address required' });
+    const symbol = await getTokenSymbol(mint);
+    res.json({ symbol });
+  } catch (err) {
+    res.status(500).json({ error: err.message, symbol: req.params.mint });
   }
 });
 

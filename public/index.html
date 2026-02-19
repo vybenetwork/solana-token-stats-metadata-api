@@ -27,19 +27,25 @@
       </div>
     </section>
 
-    <section class="token-section panel" id="tokenSection" hidden>
+    <section class="token-section panel" id="tokenSection">
       <h2>Token stats & metadata</h2>
       <div class="token-header">
-        <img id="tokenLogo" alt="" class="token-logo" />
+        <img id="tokenLogo" alt="" class="token-logo" style="display:none" />
         <div>
-          <span id="tokenSymbol" class="symbol"></span>
-          <span id="tokenName" class="name"></span>
+          <span id="tokenSymbol" class="symbol">—</span>
+          <span id="tokenName" class="name">—</span>
         </div>
       </div>
       <div class="token-stats-groups" id="tokenStats"></div>
     </section>
 
-    <section class="holders-section panel" id="holdersSection" hidden>
+    <section class="trades-summary-section panel" id="tradesSummarySection">
+      <h2>Last 1000 trades summary</h2>
+      <p class="meta" id="tradesSummaryMeta">—</p>
+      <div id="tradesSummaryContent"></div>
+    </section>
+
+    <section class="holders-section panel" id="holdersSection">
       <h2>Top 100 holders (by % supply)</h2>
       <p class="meta" id="holdersMeta"></p>
       <div class="table-wrap">

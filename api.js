@@ -31,5 +31,30 @@ export function createClient(apiKey) {
       });
       return data;
     },
+
+    /**
+     * Last N trades for a base token.
+     * @see https://docs.vybenetwork.com/reference (trades v4)
+     */
+    async getTrades(baseMintAddress, options = {}) {
+      const { limit = 100, sortByDesc = 'blockTime' } = options;
+      const { data } = await axios.get(`${BASE}/v4/trades`, {
+        ...config,
+        params: { baseMintAddress, limit, sortByDesc },
+      });
+      return data;
+    },
+
+    /**
+     * DEX / program list for labeling program addresses in trades.
+     */
+    async getPrograms() {
+      try {
+        const { data } = await axios.get(`${BASE}/v4/programs`, config);
+        return data;
+      } catch {
+        return { data: [] };
+      }
+    },
   };
 }
