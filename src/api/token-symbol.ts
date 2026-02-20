@@ -44,7 +44,8 @@ export async function getTokenSymbol(mintAddress: string): Promise<string> {
     if (data.length < symbolOffset + 4) return mint;
     const symbolLen = data.readUInt32LE(symbolOffset);
     if (symbolLen <= 0 || data.length < symbolOffset + 4 + symbolLen) return mint;
-    return data.slice(symbolOffset + 4, symbolOffset + 4 + symbolLen).toString('utf8').trim() || mint;
+    const raw = data.slice(symbolOffset + 4, symbolOffset + 4 + symbolLen).toString('utf8');
+    return raw.replace(/\0/g, '').trim() || mint;
   } catch {
     return mint;
   }

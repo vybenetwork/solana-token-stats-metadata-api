@@ -10,9 +10,18 @@ import { fileURLToPath } from 'url';
 import type { VybeProgramsResponse } from './types/api.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DATA_DIR = path.join(__dirname, '..', 'data');
-const SYMBOL_CACHE_PATH = path.join(DATA_DIR, 'symbol-cache.json');
-const PROGRAM_CACHE_PATH = path.join(DATA_DIR, 'program-label-cache.json');
+const DATA_DIR = path.resolve(__dirname, '..', 'data');
+const SYMBOL_CACHE_PATH = path.resolve(DATA_DIR, 'symbol-cache.json');
+const PROGRAM_CACHE_PATH = path.resolve(DATA_DIR, 'program-label-cache.json');
+
+let cachePathsLogged = false;
+function logCachePathsOnce(): void {
+  if (cachePathsLogged) return;
+  cachePathsLogged = true;
+  console.log('Cache dir (absolute):', DATA_DIR);
+  console.log('  symbol:', SYMBOL_CACHE_PATH);
+  console.log('  program:', PROGRAM_CACHE_PATH);
+}
 
 function ensureDataDir(): void {
   if (!fs.existsSync(DATA_DIR)) {
@@ -37,6 +46,7 @@ function writeJsonFile(filePath: string, data: object): void {
 }
 
 export function readSymbolCacheFromDisk(): Record<string, string> {
+  logCachePathsOnce();
   return readJsonFile<Record<string, string>>(SYMBOL_CACHE_PATH, {});
 }
 
@@ -45,6 +55,7 @@ export function writeSymbolCacheToDisk(data: Record<string, string>): void {
 }
 
 export function readProgramCacheFromDisk(): Record<string, VybeProgramsResponse> {
+  logCachePathsOnce();
   return readJsonFile<Record<string, VybeProgramsResponse>>(PROGRAM_CACHE_PATH, {});
 }
 

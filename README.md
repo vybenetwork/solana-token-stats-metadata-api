@@ -151,7 +151,7 @@ For any SPL token mint.
      - Endpoint: `GET /v4/tokens/{mintAddress}`
      - If this fails, fallback to `GET /api/token-symbol/:mint` (Metaplex) to still show symbol + mint.
   2. **Most recent 1000 trades**
-     - Endpoint: `GET /v4/trades?baseMintAddress=…&limit=1000&sortByDesc=blockTime`
+     - Endpoint: `GET /v4/trades?baseMintAddress=…&limit=1000&page=0&sortByDesc=blockTime`
      - Used to build top programs, top quote tokens, and top markets.
   3. **Program labels (top 10 programs)**
      - For each of the top 10 programs that does not already have a label in the well-known map (Raydium, Orca, Pump.fun, Meteora, Phoenix, Jupiter, etc.), the app calls `GET /api/programs/labeled-program-account?programAddress=…` (one request per address, queued with concurrency 2). The Vybe API used is `GET /v4/programs/labeled-program-accounts?programAddress=…`.
@@ -404,12 +404,13 @@ Returns the top 100 token holders sorted by highest percentage of supply (update
 
 **`GET /v4/trades`**
 
-Returns the last 1000 trades for a base token. Used to build the **Last 1000 trades summary** (top 10 programs and top 10 quote tokens with symbols). The server proxies this as **`GET /api/trades?baseMintAddress=…&limit=1000&sortByDesc=blockTime`**.
+Returns the last 1000 trades for a base token. Used to build the **Last 1000 trades summary** (top 10 programs and top 10 quote tokens with symbols). The server proxies this as **`GET /api/trades?baseMintAddress=…&limit=1000&page=0&sortByDesc=blockTime`**.
 
 | Parameter        | Required | Description |
 |------------------|----------|-------------|
 | baseMintAddress  | Yes      | Base token mint (query) |
 | limit            | No       | Default/max 1000 |
+| page             | No       | Page index (default 0) |
 | sortByDesc       | No       | e.g. `blockTime` |
 
 ### 4️⃣ Labeled program account (per address)

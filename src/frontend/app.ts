@@ -86,6 +86,8 @@ const WELL_KNOWN_PROGRAMS: Record<string, string> = {
   '6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P': 'Pump.fun',
   'EewxydAPCCVuNEyrVN68PuSYdQ7wKn27V9Gje1wcB3NH': 'Orca (Whirlpool)',
   'CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK': 'Raydium CLMM',
+  'CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C': 'Raydium CPMM',
+  'Gswppe6ERWKpUTXvRPfXdzHhiCyJvLadVvXGfdpBqcE1': 'Guac Swap',
   'PhoeNiXZ8ByJGLkxNfZRnkUfjvmuYqLR89jjFHGqdXY': 'Phoenix',
   'LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo': 'Meteora',
   'JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4': 'Jupiter',
@@ -271,56 +273,142 @@ fetchAllBtn.addEventListener('click', async () => {
   holdersLoading.hidden = false;
 
   let tokenData: TokenData | null = null;
-  try {
-    const tokenRes = await fetchWithRetry(`/api/tokens/${encodeURIComponent(mint)}`);
-    const data = (await tokenRes.json()) as TokenData;
-    if (tokenRes.ok) {
-      tokenData = data;
-      renderToken(tokenData);
-      hideSectionError(tokenSectionError);
-    } else {
-      showSectionError(tokenSectionError, tokenRes, data as { code?: number });
+
+  hideSectionError(tradesSummaryError);
+  const tokenUrl = `/api/tokens/${encodeURIComponent(mint)}`;
+  const tradesUrl = `/api/trades?baseMintAddress=${encodeURIComponent(mint)}&limit=1000&page=0&sortByDesc=blockTime`;
+  const topTradersUrl = `/api/wallets/top-traders?mintAddress=${encodeURIComponent(mint)}&resolution=30d&sortByDesc=realizedPnlUsd&limit=100`;
+  const holdersUrl = `/api/tokens/${encodeURIComponent(mint)}/top-holders?page=0&limit=100&sortByDesc=percentageOfSupplyHeld`;
+
+  const emptyTradesSummaryHtml = `
+    <div class="trades-summary-grid">
+      <div class="trades-summary-block trades-summary-quotes">
+        <h3 class="trades-summary-subtitle">Quote tokens (top 10)</h3>
+        <div class="table-wrap">
+          <table class="trades-summary-table">
+            <thead><tr><th>Symbol</th><th>Mint</th><th>Count</th></tr></thead>
+            <tbody><tr><td>—</td><td>—</td><td>—</td></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="trades-summary-block trades-summary-markets">
+        <h3 class="trades-summary-subtitle">Top markets (top 10)</h3>
+        <div class="table-wrap">
+          <table class="trades-summary-table">
+            <thead><tr><th>Market address</th><th>Pair</th><th>Count</th></tr></thead>
+            <tbody><tr><td>—</td><td>—</td><td>—</td></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="trades-summary-block trades-summary-programs trades-summary-programs-fullrow">
+        <h3 class="trades-summary-subtitle">Programs (top 10)</h3>
+        <div class="table-wrap">
+          <table class="trades-summary-table">
+            <colgroup><col class="col-label"><col class="col-address"><col class="col-top-market"><col class="col-count"></colgroup>
+            <thead><tr><th>Label</th><th>Program address</th><th>Top Market</th><th>Count</th></tr></thead>
+            <tbody><tr><td>—</td><td>—</td><td>—</td><td>—</td></tbody>
+          </table>
+        </div>
+      </div>
+    </div>`;
+
+  const tokenPromise = fetchWithRetry(tokenUrl)
+    .then(async (tokenRes) => {
       try {
-        const symbolRes = await fetchWithRetry(`/api/token-symbol/${encodeURIComponent(mint)}`);
-        const symbolData = symbolRes.ok ? ((await symbolRes.json()) as { symbol?: string }) : {};
-        if (symbolData.symbol) {
-          tokenData = { symbol: symbolData.symbol, mintAddress: mint };
+        if (tokenRes.ok) {
+          const data = (await tokenRes.json()) as TokenData;
+          tokenData = data;
           renderToken(tokenData);
+          hideSectionError(tokenSectionError);
+        } else {
+          const data = (await tokenRes.json().catch(() => ({}))) as TokenData;
+          showSectionError(tokenSectionError, tokenRes, data as { code?: number });
+          try {
+            const symbolRes = await fetchWithRetry(`/api/token-symbol/${encodeURIComponent(mint)}`);
+            const symbolData = symbolRes.ok ? ((await symbolRes.json()) as { symbol?: string }) : {};
+            if (symbolData.symbol) {
+              tokenData = { symbol: symbolData.symbol, mintAddress: mint };
+              renderToken(tokenData);
+            }
+          } catch {
+            /* keep section error visible */
+          }
         }
       } catch {
-        /* keep section error visible */
+        showSectionError(tokenSectionError, null, null);
       }
-    }
-  } catch {
-    showSectionError(tokenSectionError, null, null);
-    try {
-      const symbolRes = await fetchWithRetry(`/api/token-symbol/${encodeURIComponent(mint)}`);
-      const symbolData = symbolRes.ok ? ((await symbolRes.json()) as { symbol?: string }) : {};
-      if (symbolData.symbol) {
-        tokenData = { symbol: symbolData.symbol, mintAddress: mint };
-        renderToken(tokenData);
+      tokenSectionLoading.hidden = true;
+      tokenSectionLoading.setAttribute('aria-hidden', 'true');
+    })
+    .catch(() => {
+      showSectionError(tokenSectionError, null, null);
+      tokenSectionLoading.hidden = true;
+      tokenSectionLoading.setAttribute('aria-hidden', 'true');
+    });
+
+  const topTradersPromise = fetchWithRetry(topTradersUrl)
+    .then(async (topTradersRes) => {
+      hideSectionError(topTradersError);
+      if (!topTradersRes.ok) {
+        const errData = (await topTradersRes.json?.().catch(() => ({}))) ?? {};
+        showSectionError(topTradersError, topTradersRes, errData);
       }
-    } catch {
-      /* keep section error visible */
-    }
-  } finally {
-    tokenSectionLoading.hidden = true;
-    tokenSectionLoading.setAttribute('aria-hidden', 'true');
-  }
+      const topTradersData = topTradersRes.ok
+        ? (await topTradersRes.json().catch(() => ({ data: [] }))) as { data?: TopTraderRow[] }
+        : { data: [] };
+      if (topTradersRes.ok && topTradersData.data?.length) {
+        renderTopTraders(topTradersData);
+        hideSectionError(topTradersError);
+      } else {
+        topTradersMeta.textContent = '—';
+        topTradersBody.innerHTML = '<tr><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>';
+      }
+      topTradersLoading.hidden = true;
+      topTradersLoading.setAttribute('aria-hidden', 'true');
+    })
+    .catch(() => {
+      topTradersLoading.hidden = true;
+      topTradersLoading.setAttribute('aria-hidden', 'true');
+    });
 
-  try {
-    hideSectionError(tradesSummaryError);
-    await new Promise((r) => setTimeout(r, 2000));
+  const holdersPromise = fetchWithRetry(holdersUrl)
+    .then(async (holdersRes) => {
+      hideSectionError(holdersError);
+      if (!holdersRes.ok) {
+        const errData = (await holdersRes.json?.().catch(() => ({}))) ?? {};
+        showSectionError(holdersError, holdersRes, errData);
+      }
+      const holdersData = holdersRes.ok
+        ? (await holdersRes.json().catch(() => ({ data: [] }))) as { data?: HolderRow[] }
+        : { data: [] };
+      if (holdersRes.ok && holdersData.data?.length) {
+        renderHolders(holdersData);
+        hideSectionError(holdersError);
+      } else {
+        holdersMeta.textContent = '—';
+        holdersBody.innerHTML = '<tr><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>';
+      }
+      holdersLoading.hidden = true;
+      holdersLoading.setAttribute('aria-hidden', 'true');
+    })
+    .catch(() => {
+      holdersLoading.hidden = true;
+      holdersLoading.setAttribute('aria-hidden', 'true');
+    });
 
-    const tradesRes = await fetchWithRetry(
-      `/api/trades?baseMintAddress=${encodeURIComponent(mint)}&limit=1000&sortByDesc=blockTime`
-    );
-    const tradesData = tradesRes.ok
-      ? ((await tradesRes.json()) as { data?: { quoteMintAddress?: string; programAddress?: string; marketAddress?: string }[] })
-      : { data: [] };
-    const trades = tradesData.data || [];
-
-    if (trades.length > 0) {
+  const tradesPromise = fetchWithRetry(tradesUrl)
+    .then(async (tradesRes) => {
+      const tradesData = tradesRes.ok
+        ? (await tradesRes.json().catch(() => ({ data: [] }))) as { data?: { quoteMintAddress?: string; programAddress?: string; marketAddress?: string }[] }
+        : { data: [] };
+      const trades = tradesData.data || [];
+      if (trades.length === 0) {
+        tradesSummaryMeta.textContent = '—';
+        tradesSummaryContent.innerHTML = emptyTradesSummaryHtml;
+        tradesSummaryLoading.hidden = true;
+        tradesSummaryLoading.setAttribute('aria-hidden', 'true');
+        return;
+      }
       const quoteCountByMint: Record<string, number> = {};
       const programMarketCount: Record<string, Record<string, number>> = {};
       const programTradeCount: Record<string, number> = {};
@@ -356,37 +444,58 @@ fetchAllBtn.addEventListener('click', async () => {
         });
 
       const sortedByCount = Object.entries(quoteCountByMint).sort((a, b) => b[1] - a[1]);
-      const quoteSymbols: Record<string, string> = {};
-      const displayList: { mint: string; count: number }[] = [];
-      let idx = 0;
-      while (displayList.length < 10 && idx < sortedByCount.length) {
-        const batch = sortedByCount.slice(idx, idx + 10);
-        for (const [mintAddr, count] of batch) {
-          if (HARDCODED_QUOTE_SYMBOLS[mintAddr]) {
-            quoteSymbols[mintAddr] = HARDCODED_QUOTE_SYMBOLS[mintAddr];
-          } else {
-            try {
-              const r = await fetchWithRetry(`/api/token-symbol/${encodeURIComponent(mintAddr)}`);
-              const d = r.ok ? ((await r.json()) as { symbol?: string }) : {};
-              quoteSymbols[mintAddr] = d.symbol || mintAddr;
-            } catch {
-              quoteSymbols[mintAddr] = mintAddr;
-            }
-            await new Promise((r) => setTimeout(r, 300));
-          }
-          if (hasQuoteSymbol(mintAddr, quoteSymbols)) {
-            displayList.push({ mint: mintAddr, count });
-            if (displayList.length >= 10) break;
-          }
-        }
-        idx += 10;
-      }
-      const top10QuoteMintsWithSymbol = displayList.slice(0, 10);
+      const needSymbolMints = sortedByCount
+        .slice(0, 20)
+        .map(([mintAddr]) => mintAddr)
+        .filter((mintAddr) => !HARDCODED_QUOTE_SYMBOLS[mintAddr]);
 
       const uniquePrograms = [...new Set(trades.map((t) => t.programAddress).filter(Boolean))] as string[];
       const top10Programs = uniquePrograms
         .sort((a, b) => (programTradeCount[b] ?? 0) - (programTradeCount[a] ?? 0))
         .slice(0, 10);
+      const needLabel = top10Programs.filter((addr) => !WELL_KNOWN_PROGRAMS[addr]);
+
+      const [labelsRes, symbolsRes] = await Promise.all([
+        needLabel.length > 0
+          ? fetchWithRetry('/api/programs/labeled-program-accounts', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ programAddresses: needLabel }),
+            })
+          : Promise.resolve({ ok: true, json: async () => ({ labels: {} }) } as Response),
+        needSymbolMints.length > 0
+          ? fetchWithRetry('/api/token-symbols', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ mints: needSymbolMints }),
+            })
+          : Promise.resolve({ ok: true, json: async () => ({ symbols: {} }) } as Response),
+      ]);
+
+      const programLabels: Record<string, string> = {};
+      top10Programs.forEach((addr) => {
+        programLabels[addr] = WELL_KNOWN_PROGRAMS[addr] || addr;
+      });
+      if (labelsRes.ok) {
+        const body = (await labelsRes.json()) as { labels?: Record<string, string> };
+        const labels = body.labels || {};
+        Object.assign(programLabels, labels);
+      }
+
+      const quoteSymbols: Record<string, string> = { ...HARDCODED_QUOTE_SYMBOLS };
+      if (symbolsRes.ok) {
+        const body = (await symbolsRes.json()) as { symbols?: Record<string, string> };
+        const symbols = body.symbols || {};
+        Object.assign(quoteSymbols, symbols);
+      }
+      const displayList: { mint: string; count: number }[] = [];
+      for (const [mintAddr, count] of sortedByCount) {
+        if (hasQuoteSymbol(mintAddr, quoteSymbols)) {
+          displayList.push({ mint: mintAddr, count });
+          if (displayList.length >= 10) break;
+        }
+      }
+      const top10QuoteMintsWithSymbol = displayList.slice(0, 10);
 
       const programTopMarkets: Record<string, { marketAddress: string; bestQuoteMint: string | null }[]> = {};
       top10Programs.forEach((addr) => {
@@ -398,38 +507,6 @@ fetchAllBtn.addEventListener('click', async () => {
             Object.entries(quoteCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
           return { marketAddress, bestQuoteMint };
         });
-      });
-
-      const programLabels: Record<string, string> = {};
-      top10Programs.forEach((addr) => {
-        programLabels[addr] = WELL_KNOWN_PROGRAMS[addr] || addr;
-      });
-      const needLabel = top10Programs.filter((addr) => !WELL_KNOWN_PROGRAMS[addr]);
-      async function runQueue<T>(items: T[], concurrency: number, fn: (item: T) => Promise<void>): Promise<void> {
-        const executing: Promise<void>[] = [];
-        for (const item of items) {
-          const p = fn(item).then(() => {
-            executing.splice(executing.indexOf(p), 1);
-          });
-          executing.push(p);
-          if (executing.length >= concurrency) await Promise.race(executing);
-        }
-        await Promise.all(executing);
-      }
-      await runQueue(needLabel, 2, async (programAddress) => {
-        try {
-          const url = `/api/programs/labeled-program-account?programAddress=${encodeURIComponent(programAddress)}`;
-          const r = await fetchWithRetry(url);
-          if (!r.ok) return;
-          const body = (await r.json()) as { programs?: ProgramItem[] };
-          const list = body.programs || [];
-          const p = list[0];
-          if (!p) return;
-          const name = p.name || p.label || p.symbol || (Array.isArray(p.labels) && p.labels[0]);
-          if (name) programLabels[programAddress] = name;
-        } catch {
-          // keep WELL_KNOWN or address fallback
-        }
       });
 
       const baseSymbol = ((tokenData?.symbol) ?? '').toUpperCase() || '—';
@@ -445,137 +522,26 @@ fetchAllBtn.addEventListener('click', async () => {
         top10Markets,
         baseSymbol,
       });
-    }
-    if (!(trades.length > 0)) {
+      tradesSummaryLoading.hidden = true;
+      tradesSummaryLoading.setAttribute('aria-hidden', 'true');
+    })
+    .catch(() => {
+      showSectionError(tradesSummaryError, null, null);
       tradesSummaryMeta.textContent = '—';
-      tradesSummaryContent.innerHTML = `
-    <div class="trades-summary-grid">
-      <div class="trades-summary-block trades-summary-quotes">
-        <h3 class="trades-summary-subtitle">Quote tokens (top 10)</h3>
-        <div class="table-wrap">
-          <table class="trades-summary-table">
-            <thead><tr><th>Symbol</th><th>Mint</th><th>Count</th></tr></thead>
-            <tbody><tr><td>—</td><td>—</td><td>—</td></tbody>
-          </table>
-        </div>
-      </div>
-      <div class="trades-summary-block trades-summary-markets">
-        <h3 class="trades-summary-subtitle">Top markets (top 10)</h3>
-        <div class="table-wrap">
-          <table class="trades-summary-table">
-            <thead><tr><th>Market address</th><th>Pair</th><th>Count</th></tr></thead>
-            <tbody><tr><td>—</td><td>—</td><td>—</td></tbody>
-          </table>
-        </div>
-      </div>
-      <div class="trades-summary-block trades-summary-programs trades-summary-programs-fullrow">
-        <h3 class="trades-summary-subtitle">Programs (top 10)</h3>
-        <div class="table-wrap">
-          <table class="trades-summary-table">
-            <colgroup><col class="col-label"><col class="col-address"><col class="col-top-market"><col class="col-count"></colgroup>
-            <thead><tr><th>Label</th><th>Program address</th><th>Top Market</th><th>Count</th></tr></thead>
-            <tbody><tr><td>—</td><td>—</td><td>—</td><td>—</td></tr></tbody>
-          </table>
-        </div>
-      </div>
-    </div>`;
-    }
-  } catch {
-    showSectionError(tradesSummaryError, null, null);
-    tradesSummaryMeta.textContent = '—';
-    tradesSummaryContent.innerHTML = `
-    <div class="trades-summary-grid">
-      <div class="trades-summary-block trades-summary-quotes">
-        <h3 class="trades-summary-subtitle">Quote tokens (top 10)</h3>
-        <div class="table-wrap">
-          <table class="trades-summary-table">
-            <thead><tr><th>Symbol</th><th>Mint</th><th>Count</th></tr></thead>
-            <tbody><tr><td>—</td><td>—</td><td>—</td></tr></tbody>
-          </table>
-        </div>
-      </div>
-      <div class="trades-summary-block trades-summary-markets">
-        <h3 class="trades-summary-subtitle">Top markets (top 10)</h3>
-        <div class="table-wrap">
-          <table class="trades-summary-table">
-            <thead><tr><th>Market address</th><th>Pair</th><th>Count</th></tr></thead>
-            <tbody><tr><td>—</td><td>—</td><td>—</td></tbody>
-          </table>
-        </div>
-      </div>
-      <div class="trades-summary-block trades-summary-programs trades-summary-programs-fullrow">
-        <h3 class="trades-summary-subtitle">Programs (top 10)</h3>
-        <div class="table-wrap">
-          <table class="trades-summary-table">
-            <colgroup><col class="col-label"><col class="col-address"><col class="col-top-market"><col class="col-count"></colgroup>
-            <thead><tr><th>Label</th><th>Program address</th><th>Top Market</th><th>Count</th></tr></thead>
-            <tbody><tr><td>—</td><td>—</td><td>—</td><td>—</td></tr></tbody>
-          </table>
-        </div>
-      </div>
-    </div>`;
-  } finally {
-    tradesSummaryLoading.hidden = true;
-    tradesSummaryLoading.setAttribute('aria-hidden', 'true');
-  }
+      tradesSummaryContent.innerHTML = emptyTradesSummaryHtml;
+      tradesSummaryLoading.hidden = true;
+      tradesSummaryLoading.setAttribute('aria-hidden', 'true');
+    });
 
-  try {
-    await new Promise((r) => setTimeout(r, 2000));
+  await Promise.allSettled([tokenPromise, topTradersPromise, holdersPromise, tradesPromise]);
 
-    const topTradersUrl = `/api/wallets/top-traders?mintAddress=${encodeURIComponent(mint)}&resolution=30d&sortByDesc=realizedPnlUsd&limit=100`;
-    const holdersUrl = `/api/tokens/${encodeURIComponent(mint)}/top-holders?page=0&limit=100&sortByDesc=percentageOfSupplyHeld`;
-    const [topTradersSettled, holdersSettled] = await Promise.allSettled([
-      fetchWithRetry(topTradersUrl),
-      fetchWithRetry(holdersUrl),
-    ]);
-    const topTradersRes = topTradersSettled.status === 'fulfilled' ? topTradersSettled.value : ({ ok: false } as Response);
-    const holdersRes = holdersSettled.status === 'fulfilled' ? holdersSettled.value : ({ ok: false } as Response);
-    hideSectionError(topTradersError);
-    hideSectionError(holdersError);
-    if (!topTradersRes.ok) {
-      const topTradersErrData = (await (topTradersRes as Response).json?.().catch(() => ({}))) ?? {};
-      showSectionError(topTradersError, topTradersRes as Response, topTradersErrData);
-    }
-    if (!holdersRes.ok) {
-      const holdersErrData = (await (holdersRes as Response).json?.().catch(() => ({}))) ?? {};
-      showSectionError(holdersError, holdersRes as Response, holdersErrData);
-    }
-    const topTradersData = (topTradersRes as Response).ok
-      ? (await (topTradersRes as Response).json().catch(() => ({ data: [] }))) as { data?: TopTraderRow[] }
-      : { data: [] };
-    const holdersData = (holdersRes as Response).ok
-      ? (await (holdersRes as Response).json().catch(() => ({ data: [] }))) as { data?: HolderRow[] }
-      : { data: [] };
-    if ((topTradersRes as Response).ok && topTradersData.data?.length) {
-      renderTopTraders(topTradersData);
-      hideSectionError(topTradersError);
-    } else {
-      topTradersMeta.textContent = '—';
-      topTradersBody.innerHTML =
-        '<tr><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>';
-    }
-    topTradersLoading.hidden = true;
-    topTradersLoading.setAttribute('aria-hidden', 'true');
-    if ((holdersRes as Response).ok && holdersData.data?.length) {
-      renderHolders(holdersData);
-      hideSectionError(holdersError);
-    } else {
-      holdersMeta.textContent = '—';
-      holdersBody.innerHTML = '<tr><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>';
-    }
-    holdersLoading.hidden = true;
-    holdersLoading.setAttribute('aria-hidden', 'true');
-  } catch (e) {
-    showError((e as Error).message ?? e);
-  } finally {
-    fetchAllBtn.disabled = false;
-    loadingIndicator.hidden = true;
-    loadingIndicator.setAttribute('aria-hidden', 'true');
-    tokenSectionLoading.hidden = true;
-    tradesSummaryLoading.hidden = true;
-    topTradersLoading.hidden = true;
-    holdersLoading.hidden = true;
-  }
+  fetchAllBtn.disabled = false;
+  loadingIndicator.hidden = true;
+  loadingIndicator.setAttribute('aria-hidden', 'true');
+  tokenSectionLoading.hidden = true;
+  tradesSummaryLoading.hidden = true;
+  topTradersLoading.hidden = true;
+  holdersLoading.hidden = true;
 });
 
 const tokenSectionIcons: Record<string, string> = {

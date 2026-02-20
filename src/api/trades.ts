@@ -14,6 +14,7 @@ export type VybeTradesResponse = { data?: any[]; [key: string]: unknown };
 
 export interface GetTradesOptions {
   limit?: number;
+  page?: number;
   sortByDesc?: string;
 }
 
@@ -21,17 +22,17 @@ export interface GetTradesOptions {
  * Fetch last N trades for a base token.
  * @param http - Authenticated axios instance
  * @param baseMintAddress - Base token mint
- * @param options - limit (default 100), sortByDesc (default blockTime)
+ * @param options - limit (default 1000), page (default 0), sortByDesc (default blockTime)
  */
 export async function getTrades(
   http: AxiosInstance,
   baseMintAddress: string,
   options: GetTradesOptions = {}
 ): Promise<VybeTradesResponse> {
-  const { limit = 100, sortByDesc = 'blockTime' } = options;
+  const { limit = 1000, page = 0, sortByDesc = 'blockTime' } = options;
   return withRetry(async () => {
     const { data } = await http.get<VybeTradesResponse>('/v4/trades', {
-      params: { baseMintAddress, limit, sortByDesc },
+      params: { baseMintAddress, limit, page, sortByDesc },
     });
     return data;
   });
