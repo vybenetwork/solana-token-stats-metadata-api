@@ -51,8 +51,14 @@ Get your API key at [vybenetwork.com/pricing](https://vybenetwork.com/pricing).
 - Holder count
 - Symbol, name, decimals
 - Top holders (top 100; updated every 3 hours)
-- Last 1000 trades summary (top 10 programs, top 10 quote tokens, top 10 markets by count)
-- Top traders (top 100 by realized PnL, 30d)
+- Most recent 1000 trades
+  - Pair (base/quote)
+  - Markets by activity
+  - Programs by activity
+  - Pools by activity
+  - Quote tokens by activity
+  - Trade counts
+- Top traders (top 100 by realized PnL, 30d; filtered by mint)
 
 Data is sourced from Pump.fun, Raydium, Orca, and 30+ other Solana DEX programs using vetted market data. When metadata is available from both Pump.fun and PumpSwap, PumpSwap is preferred.
 
@@ -61,7 +67,8 @@ This repo includes:
 - Token details (stats and metadata) endpoint
 - Top holders endpoint
 - Top traders endpoint (by realized PnL, 30d)
-- A browser-based web app (GUI) to browse token stats, last 1000 trades summary, top traders, and top holders in one view (mint, quote mint, program address, market address, and owner addresses link to Solscan in a new tab; links use a consistent blue style)
+- Trades endpoint (most recent 1000 trades)
+- A browser-based web app (GUI) to browse token stats, most recent 1000 trades, top traders (filtered by mint), and top holders in one view (mint, quote mint, program address, market address, and owner addresses link to Solscan in a new tab; links use a consistent blue style)
 
 ## Why This Matters
 
@@ -104,39 +111,108 @@ For any SPL token mint.
 
 ### Top markets (from last 1000 trades)
 
-From the last 1000 trades, the app counts by `marketAddress` and shows the top 10 markets. For each market, the **Pair** column shows base token / most common quote mint (excluding the token mint). Table columns: Market address, Pair, Count. Market addresses link to Solscan in a new tab.
+- Uses the last 1000 trades and counts by `marketAddress` to show the top 10 markets.
+- For each market, the **Pair** column shows base token / most common quote mint (excluding the token mint).
+- Table columns: Market address, Pair, Count.
+- Market addresses link to Solscan in a new tab.
 
 ![Top markets (from last 1000 trades)](screenshots/top-markets-token-solana-api.png)
 
 ### Top Traders (30d)
 
-The app fetches **top traders** via `GET /v4/wallets/top-traders` with `mintAddress`, `resolution=30d`, `sortByDesc=realizedPnlUsd`, `limit=100` (server proxy: `GET /api/wallets/top-traders?…`). The table shows: #, Account, Realized PnL (USD), Trades, Volume (USD), Win rate. Realized PnL and Volume (USD) are shown as full amounts with a leading `$` and trailing ` USD`; no decimals unless the value is less than 10 (then up to 2 decimals). Win rate is shown as value then `%` (e.g. `42%`); 2 decimals only when the value is less than 1. Account addresses link to Solscan in a new tab.
+- Fetches **top traders** via `GET /v4/wallets/top-traders` with `mintAddress`, `resolution=30d`, `sortByDesc=realizedPnlUsd`, `limit=100` (server proxy: `GET /api/wallets/top-traders?…`).
+- The endpoint is filtered by `mintAddress`.
+- Table columns: #, Account, Realized PnL (USD), Trades, Volume (USD), Win rate.
+- Realized PnL and Volume (USD) are shown as full amounts with a leading `$` and trailing ` USD`; no decimals unless value is less than 10 (then up to 2 decimals).
+- Win rate is shown as value then `%` (e.g. `42%`); 2 decimals only when value is less than 1.
+- Account addresses link to Solscan in a new tab.
 
 ![Top traders by realized PnL (30d)](screenshots/top-traders-solana-api.png)
 
 ### Top Holders
 
-The app fetches **top holders** via `GET /v4/tokens/{mintAddress}/top-holders` (`page=0`, `limit=100`, `sortByDesc=percentageOfSupplyHeld`). The table shows rank, owner, balance, value (USD), and % of supply (top 100 by highest %; updated every 3 hours). Owner addresses link to Solscan in a new tab.
+- Fetches **top holders** via `GET /v4/tokens/{mintAddress}/top-holders` (`page=0`, `limit=100`, `sortByDesc=percentageOfSupplyHeld`).
+- Table columns: rank, owner, balance, value (USD), and % of supply.
+- Shows top 100 by highest % of supply (updated every 3 hours).
+- Owner addresses link to Solscan in a new tab.
 
 ![Top token holders](screenshots/top-token-holders-solana-api.png)
 
 ### Fetch sequence (web app)
 
-The app requests data in this order, with 2s delays between stages. Each section has its own loading indicator (spinner + “Loading…” next to the section title); it is hidden when that section’s data is loaded. If a section’s request fails (e.g. 500), a red “Failed (code X)” or “Failed (status)” message appears next to the section title and other sections continue to load.
+- **Behavior**
+  - Requests run in stages with a 2s delay between stages.
+  - Each section has its own loading indicator next to the title.
+  - If one section fails, the others keep loading.
+  - Failed sections show `Failed (code X)` / `Failed (status)`.
 
-1. **Token details** — `GET /v4/tokens/{mintAddress}`. If this fails, the app falls back to `GET /api/token-symbol/:mint` (Metaplex) and displays symbol + mint; the section error message remains visible so you know the Vybe token API failed.
-2. **Last 1000 trades** — `GET /v4/trades?baseMintAddress=…&limit=1000&sortByDesc=blockTime`
-3. **Trades summary** — from the trades array: count by `programAddress`, `quoteMintAddress`, and `marketAddress`; sort by count descending; take top 10 programs, top 10 quote mints, and top 10 markets (see below)
-4. **Programs list** — `GET /api/programs` (DEX labels); merge with well-known program IDs (Raydium, Orca, Pump.fun, etc.)
-5. **Quote symbols** — for the top 10 quote mints only: use hardcoded WSOL/USDC or `GET /api/token-symbol/:mint`; if fewer than 10 have a symbol, fetch the next batch of mints until 10 displayable or none left
-6. **Top traders and top holders** (in parallel) — `GET /v4/wallets/top-traders?mintAddress=…&resolution=30d&sortByDesc=realizedPnlUsd&limit=100` and `GET /v4/tokens/{mintAddress}/top-holders?page=0&limit=100&sortByDesc=percentageOfSupplyHeld`
+- **Request order**
+  1. **Token details**
+     - Endpoint: `GET /v4/tokens/{mintAddress}`
+     - If this fails, fallback to `GET /api/token-symbol/:mint` (Metaplex) to still show symbol + mint.
+  2. **Most recent 1000 trades**
+     - Endpoint: `GET /v4/trades?baseMintAddress=…&limit=1000&sortByDesc=blockTime`
+     - Used to build top programs, top quote tokens, and top markets.
+  3. **Programs list**
+     - Endpoint: `GET /api/programs`
+     - Purpose: map program addresses to DEX labels.
+     - Also merged with a well-known program map (Raydium, Orca, Pump.fun, Meteora, Phoenix, Jupiter).
+  4. **Quote symbols**
+     - Source priority:
+       - Hardcoded: WSOL, USDC
+       - Fallback: `GET /api/token-symbol/:mint`
+     - Continues in batches until 10 displayable quote symbols are found (or exhausted).
+  5. **Top traders + top holders** (parallel)
+     - Top traders:
+       - Endpoint: `GET /v4/wallets/top-traders`
+       - Params: `mintAddress`, `resolution=30d`, `sortByDesc=realizedPnlUsd`, `limit=100`
+       - Proxy: `GET /api/wallets/top-traders?…`
+     - Top holders:
+       - Endpoint: `GET /v4/tokens/{mintAddress}/top-holders`
+       - Params: `page=0`, `limit=100`, `sortByDesc=percentageOfSupplyHeld`
 
 ### Last 1000 trades: fetch and top 10 extraction
 
-- **Fetch:** `GET /v4/trades` with `baseMintAddress`, `limit=1000`, `sortByDesc=blockTime` (server proxy: `GET /api/trades?…`).
-- **Top 10 programs:** From the trades array, count trades per `programAddress`; sort by count descending; take the first 10. Labels come from `GET /api/programs` and a well-known DEX map (Raydium, Orca, Pump.fun, Meteora, Phoenix, Jupiter, etc.). Each program’s **Top Market** is the market with the most trades for that program; the pair shown is base token / most common quote mint in that market. If the top market’s quote symbol could not be fetched, the app uses the next market (by count) that has a fetchable quote symbol, or shows — if none do. Program and market addresses in the UI link to Solscan in a new tab. Label column width is 30%.
-- **Top 10 quote tokens:** From the trades array, count trades per `quoteMintAddress`; sort by count descending. For display we need a symbol: WSOL and USDC are hardcoded; for the rest we call `GET /api/token-symbol/:mint` only for mints that can appear in the top 10 (first 10 by count, then next batch if some fail or have no symbol). Table columns: Symbol, Mint, Count (Count right-aligned). Mint addresses link to Solscan in a new tab.
-- **Top 10 markets:** From the trades array, count trades per `marketAddress` (see [Vybe Trade History](https://docs.vybenetwork.com/reference/get_trade_data_program_v4)); sort by count descending; take the first 10. For each market, the **Pair** column shows base token / most common quote mint (excluding the token mint). Table columns: Market address, Pair, Count (Count right-aligned). Market addresses link to Solscan (account page) in a new tab.
+- **Fetch**
+  - Endpoint: `GET /v4/trades`
+  - Params: `baseMintAddress`, `limit=1000`, `sortByDesc=blockTime`
+  - Server proxy: `GET /api/trades?…`
+
+- **Top 10 programs**
+  - Aggregate by `programAddress`.
+  - Sort by trade count descending.
+  - Keep top 10 programs.
+  - Label source:
+    - `GET /api/programs`
+    - Well-known DEX map fallback
+  - For each program:
+    - Compute top market by trade count.
+    - Compute pair as base token / most common quote mint in that market.
+  - Program and market addresses link to Solscan.
+
+- **Top 10 quote tokens**
+  - Aggregate by `quoteMintAddress`.
+  - Sort by trade count descending.
+  - Keep top 10 with displayable symbols.
+  - Symbol source:
+    - Hardcoded WSOL/USDC
+    - `GET /api/token-symbol/:mint` fallback
+  - Table columns:
+    - Symbol
+    - Mint
+    - Count
+
+- **Top 10 markets**
+  - Aggregate by `marketAddress`.
+  - Sort by trade count descending.
+  - Keep top 10 markets.
+  - Pair logic:
+    - Base token / most common quote mint
+    - Excludes the base mint from quote side
+  - Table columns:
+    - Market address
+    - Pair
+    - Count
 
 ### Single REST API
 
