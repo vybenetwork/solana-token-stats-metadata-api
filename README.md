@@ -268,7 +268,7 @@ solana-token-stats-metadata-api/
     │   ├── client.ts  # Axios wrapper, retries, human-readable errors
     │   ├── tokens.ts  # GET /v4/tokens/{mint}
     │   ├── holders.ts # GET /v4/tokens/{mint}/top-holders
-    │   ├── trades.ts  # GET /v4/trades, /v4/programs, /v4/wallets/top-traders
+    │   ├── trades.ts  # GET /v4/trades, /v4/programs/labeled-program-accounts, /v4/wallets/top-traders
     │   └── token-symbol.ts  # Metaplex symbol lookup (WSOL/USDC hardcoded)
     ├── frontend/
     │   └── app.ts     # UI logic (token, trades, holders, top traders) — compiles to public/app.js

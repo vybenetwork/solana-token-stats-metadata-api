@@ -43,9 +43,14 @@ interface TopTraderRow {
   };
 }
 
-interface ProgramsResponse {
-  data?: { id?: string; address?: string; programAddress?: string; name?: string; label?: string; symbol?: string }[];
-  programs?: { id?: string; address?: string; programAddress?: string; name?: string; label?: string; symbol?: string }[];
+interface ProgramItem {
+  id?: string;
+  address?: string;
+  programAddress?: string;
+  name?: string;
+  label?: string;
+  labels?: string[];
+  symbol?: string;
 }
 
 const mintInput = document.getElementById('mint') as HTMLInputElement;
@@ -85,7 +90,6 @@ const WELL_KNOWN_PROGRAMS: Record<string, string> = {
   'LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo': 'Meteora',
   'JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4': 'Jupiter',
 };
-let programsCache: ProgramsResponse | null = null;
 
 /** Hardcoded quote symbols: no fetch for these mints. */
 const HARDCODED_QUOTE_SYMBOLS: Record<string, string> = {
@@ -396,28 +400,36 @@ fetchAllBtn.addEventListener('click', async () => {
         });
       });
 
-      let programsList: ProgramsResponse = programsCache ?? { data: [] };
-      if (!programsCache) {
-        try {
-          const progRes = await fetchWithRetry('/api/programs');
-          programsList = progRes.ok ? ((await progRes.json()) as ProgramsResponse) : { data: [] };
-          programsCache = programsList;
-        } catch {
-          programsList = { data: [] };
-        }
-      }
-
       const programLabels: Record<string, string> = {};
-      const programList = programsList.data || programsList.programs || [];
-      if (Array.isArray(programList)) {
-        programList.forEach((p) => {
-          const id = p.id || p.address || p.programAddress;
-          const name = p.name || p.label || p.symbol;
-          if (id && name) programLabels[id] = name;
-        });
-      }
       top10Programs.forEach((addr) => {
-        if (!programLabels[addr]) programLabels[addr] = WELL_KNOWN_PROGRAMS[addr] || addr;
+        programLabels[addr] = WELL_KNOWN_PROGRAMS[addr] || addr;
+      });
+      const needLabel = top10Programs.filter((addr) => !WELL_KNOWN_PROGRAMS[addr]);
+      async function runQueue<T>(items: T[], concurrency: number, fn: (item: T) => Promise<void>): Promise<void> {
+        const executing: Promise<void>[] = [];
+        for (const item of items) {
+          const p = fn(item).then(() => {
+            executing.splice(executing.indexOf(p), 1);
+          });
+          executing.push(p);
+          if (executing.length >= concurrency) await Promise.race(executing);
+        }
+        await Promise.all(executing);
+      }
+      await runQueue(needLabel, 2, async (programAddress) => {
+        try {
+          const url = `/api/programs/labeled-program-account?programAddress=${encodeURIComponent(programAddress)}`;
+          const r = await fetchWithRetry(url);
+          if (!r.ok) return;
+          const body = (await r.json()) as { programs?: ProgramItem[] };
+          const list = body.programs || [];
+          const p = list[0];
+          if (!p) return;
+          const name = p.name || p.label || p.symbol || (Array.isArray(p.labels) && p.labels[0]);
+          if (name) programLabels[programAddress] = name;
+        } catch {
+          // keep WELL_KNOWN or address fallback
+        }
       });
 
       const baseSymbol = ((tokenData?.symbol) ?? '').toUpperCase() || '—';
@@ -703,18 +715,20 @@ function renderTradesSummary(opts: {
   tradesSummaryMeta.textContent = `From last ${tradesCount} trades: top ${uniqueProgramCount} program(s), top ${quoteCountWithSymbol} quote tokens, top ${top10Markets.length} markets by count.`;
 
   const programRows = uniquePrograms
+    .filter((addr) => {
+      const markets = programTopMarkets[addr] || [];
+      const top = markets.find((m) => !m.bestQuoteMint || hasQuoteSymbol(m.bestQuoteMint, quoteSymbols));
+      return !!top;
+    })
     .map((addr) => {
       const labelCell = hasRealLabel(programLabels, addr) ? programLabels[addr] : '—';
       const count = programTradeCount[addr] ?? 0;
       const link = `<a href="${SOLSCAN_ACCOUNT}${encodeURIComponent(addr)}" target="_blank" rel="noopener noreferrer" class="mono" title="${addr}">${truncateProgramAddress(addr)}</a>`;
       const markets = programTopMarkets[addr] || [];
-      const top = markets.find((m) => !m.bestQuoteMint || hasQuoteSymbol(m.bestQuoteMint, quoteSymbols));
-      let topMarketCell = '—';
-      if (top) {
-        const marketLink = `<a href="${SOLSCAN_ACCOUNT}${encodeURIComponent(top.marketAddress)}" target="_blank" rel="noopener noreferrer" class="mono" title="${top.marketAddress}">${truncateAddress(top.marketAddress)}</a>`;
-        const pairDisplay = top.bestQuoteMint ? `${baseSymbol} / ${quoteDisplay(top.bestQuoteMint, quoteSymbols)}` : '';
-        topMarketCell = pairDisplay ? `${marketLink} (${pairDisplay})` : marketLink;
-      }
+      const top = markets.find((m) => !m.bestQuoteMint || hasQuoteSymbol(m.bestQuoteMint, quoteSymbols))!;
+      const marketLink = `<a href="${SOLSCAN_ACCOUNT}${encodeURIComponent(top.marketAddress)}" target="_blank" rel="noopener noreferrer" class="mono" title="${top.marketAddress}">${truncateAddress(top.marketAddress)}</a>`;
+      const pairDisplay = top.bestQuoteMint ? `${baseSymbol} / ${quoteDisplay(top.bestQuoteMint, quoteSymbols)}` : '';
+      const topMarketCell = pairDisplay ? `${marketLink} (${pairDisplay})` : marketLink;
       return `<tr><td>${labelCell}</td><td>${link}</td><td>${topMarketCell}</td><td>${count}</td></tr>`;
     })
     .join('');

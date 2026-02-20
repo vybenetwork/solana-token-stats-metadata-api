@@ -75,9 +75,11 @@ app.get('/api/trades', async (req: Request, res: Response) => {
   }
 });
 
-app.get('/api/programs', async (_req: Request, res: Response) => {
+app.get('/api/programs/labeled-program-account', async (req: Request, res: Response) => {
   try {
-    const data = await client.getPrograms();
+    const programAddress = param(req, 'programAddress').trim();
+    if (!programAddress) return res.status(400).json({ error: 'programAddress query required' });
+    const data = await client.getLabeledProgramAccount(programAddress);
     res.json(data);
   } catch (err) {
     const status = (err as { response?: { status?: number } })?.response?.status ?? 500;
