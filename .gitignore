@@ -9,3 +9,5 @@ node_modules/
 public/app.js
 # Private deploy script (do not commit)
 scripts/
+# Persistent caches (read/write at request time)
+data/

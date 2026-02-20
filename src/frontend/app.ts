@@ -79,7 +79,7 @@ const holdersBody = document.getElementById('holdersBody') as HTMLElement;
 const errorSection = document.getElementById('errorSection') as HTMLElement;
 const errorText = document.getElementById('errorText') as HTMLElement;
 
-/** Well-known DEX program IDs → label (used when /api/programs has no match). */
+/** Well-known DEX program IDs → label (used when labeled-program-account has no match). */
 const WELL_KNOWN_PROGRAMS: Record<string, string> = {
   '675kPX9MHTjS2zt1qwr1sgbV5tjF6n5paF8GcaxHfL8r': 'Raydium',
   '9W959DqEETiGZocYWCQPaJ6sBmUzgfxXfqGeTEdp3aQP': 'Orca',

@@ -11,6 +11,12 @@ import { loadEnv, getApiKey, PUBLIC_DIR } from './config.js';
 import { createClient } from './api/index.js';
 import { getTokenSymbol } from './api/token-symbol.js';
 import { toHumanReadableError } from './api/client.js';
+import {
+  readSymbolCacheFromDisk,
+  writeSymbolCacheToDisk,
+  readProgramCacheFromDisk,
+  writeProgramCacheToDisk,
+} from './cache.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -79,7 +85,11 @@ app.get('/api/programs/labeled-program-account', async (req: Request, res: Respo
   try {
     const programAddress = param(req, 'programAddress').trim();
     if (!programAddress) return res.status(400).json({ error: 'programAddress query required' });
+    const cache = readProgramCacheFromDisk();
+    if (cache[programAddress] != null) return res.json(cache[programAddress]!);
     const data = await client.getLabeledProgramAccount(programAddress);
+    cache[programAddress] = data;
+    writeProgramCacheToDisk(cache);
     res.json(data);
   } catch (err) {
     const status = (err as { response?: { status?: number } })?.response?.status ?? 500;
@@ -106,7 +116,11 @@ app.get('/api/token-symbol/:mint', async (req: Request, res: Response) => {
   try {
     const mint = param(req, 'mint').trim();
     if (!mint) return res.status(400).json({ error: 'Mint address required' });
+    const cache = readSymbolCacheFromDisk();
+    if (cache[mint] != null) return res.json({ symbol: cache[mint] });
     const symbol = await getTokenSymbol(mint);
+    cache[mint] = symbol;
+    writeSymbolCacheToDisk(cache);
     res.json({ symbol });
   } catch (err) {
     res.status(500).json({ error: (err as Error).message, symbol: req.params.mint });

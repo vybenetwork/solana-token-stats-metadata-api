@@ -89,7 +89,7 @@ This demo uses:
 - **Top holders endpoint** — top token holders (rank, balance, value USD, % supply)
 - **Top traders endpoint** — top 100 wallets by realized PnL (30d) for the token
 - **Trades endpoint** — last 1000 trades to build programs, quote tokens, and markets summary
-- **Programs endpoint** — DEX labels for program addresses in the trades summary
+- **Labeled program endpoint** — per-address Vybe lookup for top-10 program labels (well-known map first, then queued requests)
 
 ## What You Get
 
@@ -153,10 +153,8 @@ For any SPL token mint.
   2. **Most recent 1000 trades**
      - Endpoint: `GET /v4/trades?baseMintAddress=…&limit=1000&sortByDesc=blockTime`
      - Used to build top programs, top quote tokens, and top markets.
-  3. **Programs list**
-     - Endpoint: `GET /api/programs`
-     - Purpose: map program addresses to DEX labels.
-     - Also merged with a well-known program map (Raydium, Orca, Pump.fun, Meteora, Phoenix, Jupiter).
+  3. **Program labels (top 10 programs)**
+     - For each of the top 10 programs that does not already have a label in the well-known map (Raydium, Orca, Pump.fun, Meteora, Phoenix, Jupiter, etc.), the app calls `GET /api/programs/labeled-program-account?programAddress=…` (one request per address, queued with concurrency 2). The Vybe API used is `GET /v4/programs/labeled-program-accounts?programAddress=…`.
   4. **Quote symbols**
      - Source priority:
        - Hardcoded: WSOL, USDC
@@ -183,11 +181,12 @@ For any SPL token mint.
   - Sort by trade count descending.
   - Keep top 10 programs.
   - Label source:
-    - `GET /api/programs`
-    - Well-known DEX map fallback
+    - Well-known DEX map first (Raydium, Orca, Pump.fun, Meteora, Phoenix, Jupiter, etc.).
+    - For any program without a label: `GET /api/programs/labeled-program-account?programAddress=…` (queued, one Vybe request per address).
   - For each program:
     - Compute top market by trade count.
     - Compute pair as base token / most common quote mint in that market.
+  - Rows with no resolvable top market (e.g. unresolved pool or scam token) are omitted from the table.
   - Program and market addresses link to Solscan.
 
 - **Top 10 quote tokens**
@@ -413,11 +412,11 @@ Returns the last 1000 trades for a base token. Used to build the **Last 1000 tra
 | limit            | No       | Default/max 1000 |
 | sortByDesc       | No       | e.g. `blockTime` |
 
-### 4️⃣ Programs (DEX list)
+### 4️⃣ Labeled program account (per address)
 
-**`GET /api/programs`**
+**`GET /api/programs/labeled-program-account?programAddress=…`**
 
-Returns the list of DEX programs used to label program addresses in the trades summary. The app merges this with well-known program IDs (Raydium, Orca, Pump.fun, Meteora, Phoenix, Jupiter, etc.) when the API does not return a label.
+Returns the labeled program for a single program address. The server proxies to Vybe `GET /v4/programs/labeled-program-accounts?programAddress=…`. The app calls this once per top-10 program that does not already have a label (well-known map used first); requests are queued with concurrency 2. Response shape: `{ programs?: [{ programAddress, name?, labels?: string[] }] }`.
 
 ### 5️⃣ Top Traders
 

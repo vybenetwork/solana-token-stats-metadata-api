@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "build": "tsc",
     "build:frontend": "tsc -p tsconfig.frontend.json",
-    "prestart": "npm run build:frontend"
+    "prestart": "npm run build:frontend",
+    "bench:trades": "tsx scripts/bench-trades.ts"
   },
   "keywords": ["solana", "token", "metadata", "vybe", "api"],
   "license": "MIT",
