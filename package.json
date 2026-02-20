@@ -3,17 +3,31 @@
   "version": "1.0.0",
   "description": "Solana token stats & metadata API demo — Vybe API",
   "type": "module",
-  "main": "index.js",
+  "main": "dist/server.js",
   "scripts": {
-    "start": "node index.js",
-    "dev": "node server.js",
-    "dev:tunnel": "node server.js --tunnel"
+    "start": "tsx src/server.ts",
+    "dev": "tsx src/server.ts",
+    "dev:tunnel": "TUNNEL=1 tsx src/server.ts",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc",
+    "build:frontend": "tsc -p tsconfig.frontend.json",
+    "prestart": "npm run build:frontend"
   },
   "keywords": ["solana", "token", "metadata", "vybe", "api"],
   "license": "MIT",
   "dependencies": {
-    "axios": "^1.6.0",
-    "dotenv": "^16.3.1",
-    "express": "^4.18.2"
+    "@solana/web3.js": "1.98.4",
+    "axios": "1.7.9",
+    "dotenv": "16.4.5",
+    "express": "4.21.1"
+  },
+  "devDependencies": {
+    "@types/express": "5.0.0",
+    "@types/node": "22.10.1",
+    "typescript": "5.6.3",
+    "tsx": "4.19.2"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }

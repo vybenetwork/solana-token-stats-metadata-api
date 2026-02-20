@@ -1,23 +1,27 @@
+/**
+ * Resolve token symbol: hardcoded WSOL/USDC, else Metaplex metadata via public mainnet RPC.
+ * Used for quote tokens in trades summary and as fallback when Vybe token details fail.
+ */
+
 import { Connection, PublicKey } from '@solana/web3.js';
 
-const RPC_URL = process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
+const RPC_URL = process.env.SOLANA_RPC_URL ?? 'https://api.mainnet-beta.solana.com';
 const METADATA_PROGRAM_ID = new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s');
 
-/** Hardcoded symbols: do not fetch from RPC. */
-const HARDCODED_SYMBOLS = {
+const HARDCODED_SYMBOLS: Record<string, string> = {
   So11111111111111111111111111111111111111112: 'WSOL',
   EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v: 'USDC',
 };
 
 /**
- * Resolve token symbol: hardcoded for WSOL/USDC, else Metaplex metadata via public mainnet RPC.
- * @param {string} mintAddress - Token mint address
- * @returns {Promise<string>} Symbol or mint address on failure
+ * Get symbol for a mint: hardcoded for WSOL/USDC, otherwise fetches Metaplex metadata.
+ * @param mintAddress - Token mint address
+ * @returns Symbol string, or mint address if not found
  */
-export async function getTokenSymbol(mintAddress) {
-  const mint = (mintAddress || '').trim();
+export async function getTokenSymbol(mintAddress: string): Promise<string> {
+  const mint = (mintAddress ?? '').trim();
   if (!mint) return '';
-  if (HARDCODED_SYMBOLS[mint]) return HARDCODED_SYMBOLS[mint];
+  if (HARDCODED_SYMBOLS[mint]) return HARDCODED_SYMBOLS[mint]!;
 
   const connection = new Connection(RPC_URL);
   try {
@@ -34,7 +38,6 @@ export async function getTokenSymbol(mintAddress) {
     if (!accountInfo?.data?.length) return mint;
 
     const data = accountInfo.data;
-    // Metaplex Metadata: key(1) + update_authority(32) + mint(32) = 65, then name(len+4), symbol(len+4), ...
     if (data.length < 69) return mint;
     const nameLen = data.readUInt32LE(65);
     const symbolOffset = 65 + 4 + nameLen;

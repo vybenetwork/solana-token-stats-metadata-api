@@ -5,3 +5,5 @@ node_modules/
 .env.*.local
 .DS_Store
 *.log
+# Frontend is built from src/frontend/app.ts
+public/app.js

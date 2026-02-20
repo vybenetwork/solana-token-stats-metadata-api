@@ -406,6 +406,24 @@ button:active {
   text-decoration: none;
 }
 
+/* ~20 rows visible, then scroll */
+.top-traders-section .table-wrap,
+.holders-section .table-wrap {
+  max-height: 45rem;
+  overflow-y: auto;
+}
+
+/* Sticky header row for Top traders and Top holders */
+.top-traders-section .table-wrap thead th,
+.holders-section .table-wrap thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #18181b;
+  border-bottom: 1px solid #27272a;
+  box-shadow: 0 1px 0 #27272a;
+}
+
 .top-traders-section a {
   color: #3b82f6;
   text-decoration: none;
