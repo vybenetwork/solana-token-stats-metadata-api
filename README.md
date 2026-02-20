@@ -4,6 +4,14 @@ This repository demonstrates how to use the Vybe Solana Token API to fetch token
 
 ![Token metadata and stats](screenshots/token-metadata-spl-token2022-solana-api.png)
 
+<table>
+<tr>
+<td><img src="screenshots/top-markets-token-solana-api.png" alt="Top markets (from last 1000 trades)" width="280"/></td>
+<td><img src="screenshots/top-traders-solana-api.png" alt="Top traders by realized PnL (30d)" width="280"/></td>
+<td><img src="screenshots/top-token-holders-solana-api.png" alt="Top token holders" width="280"/></td>
+</tr>
+</table>
+
 ## Prerequisites
 
 - **Node.js** ≥ 20 (LTS recommended; see [.nvmrc](.nvmrc) for exact version)

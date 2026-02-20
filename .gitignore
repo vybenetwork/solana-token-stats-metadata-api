@@ -7,3 +7,5 @@ node_modules/
 *.log
 # Frontend is built from src/frontend/app.ts
 public/app.js
+# Private deploy script (do not commit)
+scripts/
