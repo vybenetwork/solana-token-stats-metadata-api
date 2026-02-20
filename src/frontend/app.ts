@@ -794,9 +794,9 @@ function renderTopTraders(data: { data?: TopTraderRow[] }): void {
         <td>${rank}</td>
         <td>${accountLink}</td>
         <td>${realizedPnl}</td>
-        <td>${tradesCount}</td>
-        <td>${volumeUsd}</td>
-        <td>${winRate}</td>
+        <td style="text-align:right">${tradesCount}</td>
+        <td style="text-align:right">${volumeUsd}</td>
+        <td style="text-align:right">${winRate}</td>
       </tr>`;
         })
         .join('')
@@ -830,9 +830,9 @@ function renderHolders(data: { data?: HolderRow[] }): void {
           return `<tr>
         <td>${rank}</td>
         <td>${ownerLink}</td>
-        <td>${balance}</td>
-        <td>${valueUsd}</td>
-        <td>${pct}</td>
+        <td style="text-align:left">${balance}</td>
+        <td style="text-align:right">${valueUsd}</td>
+        <td style="text-align:right">${pct}</td>
       </tr>`;
         })
         .join('')

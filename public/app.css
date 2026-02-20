@@ -505,3 +505,25 @@ td .mono {
   white-space: pre-wrap;
   word-break: break-all;
 }
+
+/* Numeric columns: right-align header and cells so they line up (Top traders, Holders) */
+#topTradersTable th:nth-child(4),
+#topTradersTable td:nth-child(4),
+#topTradersTable th:nth-child(5),
+#topTradersTable td:nth-child(5),
+#topTradersTable th:nth-child(6),
+#topTradersTable td:nth-child(6) {
+  text-align: right !important;
+}
+
+#holdersTable th:nth-child(3),
+#holdersTable td:nth-child(3) {
+  text-align: left !important;
+}
+
+#holdersTable th:nth-child(4),
+#holdersTable td:nth-child(4),
+#holdersTable th:nth-child(5),
+#holdersTable td:nth-child(5) {
+  text-align: right !important;
+}
