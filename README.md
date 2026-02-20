@@ -4,13 +4,22 @@ This repository demonstrates how to use the Vybe Solana Token API to fetch token
 
 ![Token metadata and stats](screenshots/token-metadata-spl-token2022-solana-api.png)
 
-<table style="border-collapse: collapse; border: none;">
-<tr>
-<td style="border: none; text-align: center;"><img src="screenshots/top-traders-solana-api.png" alt="Top traders by realized PnL (30d)" width="280"/><br/><strong>Top Traders (30d)</strong></td>
-<td style="border: none; text-align: center;"><img src="screenshots/top-markets-token-solana-api.png" alt="Top markets (from last 1000 trades)" width="280"/><br/><strong>Top Markets / Pools / Programs</strong></td>
-<td style="border: none; text-align: center;"><img src="screenshots/top-token-holders-solana-api.png" alt="Top token holders" width="280"/><br/><strong>Top Token Holders</strong></td>
-</tr>
-</table>
+<div align="center">
+  <div style="display: flex; justify-content: center; gap: 16px; flex-wrap: wrap;">
+    <div style="text-align: center;">
+      <img src="screenshots/top-traders-solana-api.png" alt="Top traders by realized PnL (30d)" width="280" /><br />
+      <strong>Top Traders (30d)</strong>
+    </div>
+    <div style="text-align: center;">
+      <img src="screenshots/top-markets-token-solana-api.png" alt="Top markets (from last 1000 trades)" width="280" /><br />
+      <strong>Top Markets / Pools / Programs</strong>
+    </div>
+    <div style="text-align: center;">
+      <img src="screenshots/top-token-holders-solana-api.png" alt="Top token holders" width="280" /><br />
+      <strong>Top Token Holders</strong>
+    </div>
+  </div>
+</div>
 
 ## Prerequisites
 
