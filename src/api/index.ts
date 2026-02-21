@@ -20,7 +20,7 @@ import type { VybeTopHoldersResponse, VybeProgramsResponse, VybeTopTradersRespon
 export interface VybeClient {
   getToken(mintAddress: string): Promise<VybeToken>;
   getTopHolders(mintAddress: string, options?: GetTopHoldersOptions): Promise<VybeTopHoldersResponse>;
-  getTrades(baseMintAddress: string, options?: GetTradesOptions): Promise<VybeTradesResponse>;
+  getTrades(mintAddress: string, options?: GetTradesOptions): Promise<VybeTradesResponse>;
   getLabeledProgramAccount(programAddress: string): Promise<VybeProgramsResponse>;
   getTopTraders(mintAddress: string, options?: GetTopTradersOptions): Promise<VybeTopTradersResponse>;
 }
@@ -35,8 +35,8 @@ export function createClient(apiKey: string): VybeClient {
     getToken: (mintAddress: string) => fetchToken(http, mintAddress),
     getTopHolders: (mintAddress: string, options?: GetTopHoldersOptions) =>
       getTopHolders(http, mintAddress, options),
-    getTrades: (baseMintAddress: string, options?: GetTradesOptions) =>
-      getTrades(http, baseMintAddress, options),
+    getTrades: (mintAddress: string, options?: GetTradesOptions) =>
+      getTrades(http, mintAddress, options),
     getLabeledProgramAccount: (programAddress: string) => getLabeledProgramAccount(http, programAddress),
     getTopTraders: (mintAddress: string, options?: GetTopTradersOptions) =>
       getTopTraders(http, mintAddress, options),

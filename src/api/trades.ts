@@ -16,24 +16,33 @@ export interface GetTradesOptions {
   limit?: number;
   page?: number;
   sortByDesc?: string;
+  /** Start time of the data to return (unix timestamp). Used for consistent pagination. */
+  timeStart?: number | null;
+  /** End time of the data to return (unix timestamp). */
+  timeEnd?: number | null;
 }
 
 /**
  * Fetch last N trades for a base token.
  * @param http - Authenticated axios instance
- * @param baseMintAddress - Base token mint
+ * @param mintAddress - Token mint
  * @param options - limit (default 250), page (default 0), sortByDesc (default blockTime)
  */
 export async function getTrades(
   http: AxiosInstance,
-  baseMintAddress: string,
+  mintAddress: string,
   options: GetTradesOptions = {}
 ): Promise<VybeTradesResponse> {
-  const { limit = 250, page = 0, sortByDesc = 'blockTime' } = options;
+  const { limit = 250, page = 0, sortByDesc = 'blockTime', timeStart, timeEnd } = options;
   return withRetry(async () => {
-    const { data } = await http.get<VybeTradesResponse>('/v4/trades', {
-      params: { baseMintAddress, limit, page, sortByDesc },
-    });
+    const params: Record<string, string> = {};
+    params.mintAddress = mintAddress;
+    if (timeStart != null && timeStart >= 0) params.timeStart = String(timeStart);
+    if (timeEnd != null && timeEnd >= 0) params.timeEnd = String(timeEnd);
+    params.page = String(page);
+    params.limit = String(limit);
+    params.sortByDesc = sortByDesc;
+    const { data } = await http.get<VybeTradesResponse>('/v4/trades', { params });
     return data;
   });
 }

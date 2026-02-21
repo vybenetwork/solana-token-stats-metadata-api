@@ -64,6 +64,7 @@ const tokenName = document.getElementById('tokenName') as HTMLElement;
 const tokenStats = document.getElementById('tokenStats') as HTMLElement;
 const tradesSummarySection = document.getElementById('tradesSummarySection');
 const tradesSummaryLoading = document.getElementById('tradesSummaryLoading') as HTMLElement;
+const tradesSummaryLoadingText = document.getElementById('tradesSummaryLoadingText') as HTMLElement;
 const tradesSummaryError = document.getElementById('tradesSummaryError') as HTMLElement;
 const tradesSummaryMeta = document.getElementById('tradesSummaryMeta') as HTMLElement;
 const tradesSummaryContent = document.getElementById('tradesSummaryContent') as HTMLElement;
@@ -259,7 +260,13 @@ async function fetchWithRetry(url: string, options: RequestInit = {}): Promise<R
   throw lastErr;
 }
 
-type TradeRow = { baseMintAddress?: string; quoteMintAddress?: string; programAddress?: string; marketAddress?: string };
+type TradeRow = {
+  baseMintAddress?: string;
+  quoteMintAddress?: string;
+  programAddress?: string;
+  marketAddress?: string;
+  blockTime?: number;
+};
 
 /** Each row has baseMintAddress and quoteMintAddress. Use the one that isn't the mint being analysed. */
 function otherMint(t: TradeRow, mintBeingAnalysed: string): string {
@@ -383,7 +390,9 @@ async function processTradesAndRender(
   });
 }
 
-const TRADES_LIMIT = 250;
+const TRADES_PAGE_SIZE = 100;
+const TRADES_TOTAL_PAGES = 10;
+const TRADES_TOTAL = TRADES_PAGE_SIZE * TRADES_TOTAL_PAGES;
 
 fetchAllBtn.addEventListener('click', async () => {
   const mint = mintInput.value.trim();
@@ -401,10 +410,7 @@ fetchAllBtn.addEventListener('click', async () => {
   let tokenData: TokenData | null = null;
 
   hideSectionError(tradesSummaryError);
-  const tradesSummaryHeading = tradesSummarySection?.querySelector('.section-header h2');
-  if (tradesSummaryHeading) tradesSummaryHeading.textContent = `Last ${TRADES_LIMIT} trades summary`;
   const tokenUrl = `/api/tokens/${encodeURIComponent(mint)}`;
-  const tradesUrl = `/api/trades?mintAddress=${encodeURIComponent(mint)}&limit=${TRADES_LIMIT}&page=0&sortByDesc=blockTime`;
   const topTradersUrl = `/api/wallets/top-traders?mintAddress=${encodeURIComponent(mint)}&resolution=30d&sortByDesc=realizedPnlUsd&limit=100`;
   const holdersUrl = `/api/tokens/${encodeURIComponent(mint)}/top-holders?page=0&limit=100&sortByDesc=percentageOfSupplyHeld`;
 
@@ -524,30 +530,91 @@ fetchAllBtn.addEventListener('click', async () => {
       holdersLoading.setAttribute('aria-hidden', 'true');
     });
 
-  const tradesPromise = fetchWithRetry(tradesUrl)
-    .then(async (tradesRes) => {
-      const tradesData = tradesRes.ok
-        ? (await tradesRes.json().catch(() => ({ data: [] }))) as { data?: TradeRow[] }
-        : { data: [] };
-      const trades = tradesData.data || [];
-      if (trades.length === 0) {
-        tradesSummaryMeta.textContent = '—';
-        tradesSummaryContent.innerHTML = emptyTradesSummaryHtml;
-        tradesSummaryLoading.hidden = true;
-        tradesSummaryLoading.setAttribute('aria-hidden', 'true');
-        return;
+  await tokenPromise;
+
+  const tradesSummaryHeading = tradesSummarySection?.querySelector('.section-header h2');
+  const usdVolume24h = (tokenData as TokenData | null)?.usdValueVolume24h ?? 0;
+  const highVolume = usdVolume24h >= 500_000;
+
+  const tradesPromise = (async () => {
+    const buildTradesUrl = (opts: {
+      page: number;
+      limit: number;
+      timeStart?: number | null;
+      timeEnd?: number | null;
+    }): string => {
+      const params = new URLSearchParams({
+        mintAddress: mint,
+        limit: String(opts.limit),
+        page: String(opts.page),
+        sortByDesc: 'blockTime',
+      });
+      if (opts.timeStart != null && opts.timeStart >= 0) params.set('timeStart', String(opts.timeStart));
+      if (opts.timeEnd != null && opts.timeEnd >= 0) params.set('timeEnd', String(opts.timeEnd));
+      return `/api/trades?${params.toString()}`;
+    };
+
+    const mergeBatchesInOrder = (batches: (TradeRow[] | null)[]): TradeRow[] => {
+      const out: TradeRow[] = [];
+      for (let p = 0; p < batches.length; p++) {
+        const b = batches[p];
+        if (b?.length) out.push(...b);
       }
-      await processTradesAndRender(trades, mint, tokenData);
-      tradesSummaryLoading.hidden = true;
-      tradesSummaryLoading.setAttribute('aria-hidden', 'true');
-    })
-    .catch(() => {
+      return out;
+    };
+
+    try {
+      if (highVolume) {
+        if (tradesSummaryHeading) tradesSummaryHeading.textContent = `Last ${TRADES_TOTAL} trades summary`;
+        if (tradesSummaryLoadingText) tradesSummaryLoadingText.textContent = 'Loading… (0%)';
+        const batches: (TradeRow[] | null)[] = Array(TRADES_TOTAL_PAGES).fill(null);
+        let completedCount = 0;
+
+        const fetchPage = async (page: number): Promise<void> => {
+          const res = await fetchWithRetry(
+            buildTradesUrl({ page, limit: TRADES_PAGE_SIZE })
+          );
+          const json = res.ok
+            ? ((await res.json().catch(() => ({ data: [] }))) as { data?: TradeRow[] })
+            : { data: [] };
+          const data = json.data || [];
+          batches[page] = data;
+          const merged = mergeBatchesInOrder(batches);
+          if (merged.length > 0) await processTradesAndRender(merged, mint, tokenData);
+          completedCount++;
+          if (tradesSummaryLoadingText) {
+            tradesSummaryLoadingText.textContent = `Loading… (${Math.min(completedCount * 10, 100)}%)`;
+          }
+        };
+
+        await Promise.all(
+          Array.from({ length: TRADES_TOTAL_PAGES }, (_, p) => fetchPage(p))
+        );
+      } else {
+        if (tradesSummaryHeading) tradesSummaryHeading.textContent = 'Last trades summary';
+        const res = await fetchWithRetry(
+          buildTradesUrl({ page: 0, limit: 1000 })
+        );
+        const json = res.ok
+          ? ((await res.json().catch(() => ({ data: [] }))) as { data?: TradeRow[] })
+          : { data: [] };
+        const trades = json.data || [];
+        if (trades.length === 0) {
+          tradesSummaryMeta.textContent = '—';
+          tradesSummaryContent.innerHTML = emptyTradesSummaryHtml;
+        } else {
+          await processTradesAndRender(trades, mint, tokenData);
+        }
+      }
+    } catch {
       showSectionError(tradesSummaryError, null, null);
       tradesSummaryMeta.textContent = '—';
       tradesSummaryContent.innerHTML = emptyTradesSummaryHtml;
+    } finally {
       tradesSummaryLoading.hidden = true;
       tradesSummaryLoading.setAttribute('aria-hidden', 'true');
-    });
+    }
+  })();
 
   await Promise.allSettled([tokenPromise, topTradersPromise, holdersPromise, tradesPromise]);
 

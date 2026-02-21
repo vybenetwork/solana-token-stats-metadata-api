@@ -3,11 +3,12 @@
  * Demonstrates token details, top holders, trades, programs, top traders, and token symbol (Metaplex fallback).
  */
 
+import fs from 'fs';
 import express, { Request, Response } from 'express';
 import { spawn } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { loadEnv, getApiKey, PUBLIC_DIR } from './config.js';
+import { loadEnv, getApiKey, PUBLIC_DIR, VYBE_API_BASE } from './config.js';
 import { createClient } from './api/index.js';
 import { getTokenSymbol } from './api/token-symbol.js';
 import { toHumanReadableError } from './api/client.js';
@@ -19,6 +20,14 @@ import {
 } from './cache.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const TRADES_LOG_FILE = path.join(__dirname, '..', 'trades-requests.log');
+
+function logTradesRequest(line: string): void {
+  const ts = new Date().toISOString();
+  const full = `[${ts}] ${line}\n`;
+  fs.appendFileSync(TRADES_LOG_FILE, full);
+  console.log('[trades]', line);
+}
 
 loadEnv();
 const apiKey = getApiKey();
@@ -68,17 +77,56 @@ app.get('/api/tokens/:mint/top-holders', async (req: Request, res: Response) => 
   }
 });
 
+function queryOne(req: Request, key: string): string | undefined {
+  const v = req.query[key];
+  const s = Array.isArray(v) ? v[0] : v;
+  return s != null && s !== '' ? String(s) : undefined;
+}
+
 app.get('/api/trades', async (req: Request, res: Response) => {
   try {
     const mintAddress = param(req, 'mintAddress').trim();
     if (!mintAddress) return res.status(400).json({ error: 'mintAddress required' });
-    const limit = Math.min(Number(req.query.limit) || 250, 1000);
-    const page = Number(req.query.page) || 0;
-    const sortByDesc = (req.query.sortByDesc as string) || 'blockTime';
-    const data = await client.getTrades(mintAddress, { limit, page, sortByDesc });
+    const limitRaw = queryOne(req, 'limit');
+    const limit = Math.min(limitRaw != null ? Number(limitRaw) : 250, 1000);
+    const pageRaw = queryOne(req, 'page');
+    const page = pageRaw != null ? Number(pageRaw) : 0;
+    const sortByDesc = queryOne(req, 'sortByDesc') ?? 'blockTime';
+    const timeStartRaw = queryOne(req, 'timeStart');
+    const timeStart =
+      timeStartRaw != null && !Number.isNaN(Number(timeStartRaw)) && Number(timeStartRaw) >= 0
+        ? Number(timeStartRaw)
+        : undefined;
+    const timeEndRaw = queryOne(req, 'timeEnd');
+    const timeEnd =
+      timeEndRaw != null && !Number.isNaN(Number(timeEndRaw)) && Number(timeEndRaw) >= 0
+        ? Number(timeEndRaw)
+        : undefined;
+    const opts = {
+      limit: Number.isNaN(limit) ? 250 : limit,
+      page: Number.isNaN(page) ? 0 : page,
+      sortByDesc,
+      ...(timeStart != null ? { timeStart } : {}),
+      ...(timeEnd != null ? { timeEnd } : {}),
+    };
+    const q = new URLSearchParams({
+      mintAddress,
+      limit: String(opts.limit),
+      page: String(opts.page),
+      sortByDesc: opts.sortByDesc,
+      ...(timeStart != null ? { timeStart: String(timeStart) } : {}),
+      ...(timeEnd != null ? { timeEnd: String(timeEnd) } : {}),
+    });
+    const vybeUrl = `${VYBE_API_BASE}/v4/trades?${q.toString()}`;
+    logTradesRequest(`REQUEST → ${JSON.stringify(opts)}`);
+    logTradesRequest(`URL → ${vybeUrl}`);
+    const data = await client.getTrades(mintAddress, opts);
+    logTradesRequest(`OK page=${opts.page}`);
     res.json(data);
   } catch (err) {
     const status = (err as { response?: { status?: number } })?.response?.status ?? 500;
+    logTradesRequest(`FAIL status=${status} ${toHumanReadableError(err)}`);
+    logTradesRequest(`req.query → ${JSON.stringify(req.query)}`);
     res.status(status).json({ error: toHumanReadableError(err) });
   }
 });
