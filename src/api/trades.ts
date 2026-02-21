@@ -33,13 +33,13 @@ export async function getTrades(
   mintAddress: string,
   options: GetTradesOptions = {}
 ): Promise<VybeTradesResponse> {
-  const { limit = 250, page = 0, sortByDesc = 'blockTime', timeStart, timeEnd } = options;
+  const { limit = 250, page, sortByDesc = 'blockTime', timeStart, timeEnd } = options;
   return withRetry(async () => {
     const params: Record<string, string> = {};
     params.mintAddress = mintAddress;
     if (timeStart != null && timeStart >= 0) params.timeStart = String(timeStart);
     if (timeEnd != null && timeEnd >= 0) params.timeEnd = String(timeEnd);
-    params.page = String(page);
+    if (page !== undefined) params.page = String(page);
     params.limit = String(limit);
     params.sortByDesc = sortByDesc;
     const { data } = await http.get<VybeTradesResponse>('/v4/trades', { params });

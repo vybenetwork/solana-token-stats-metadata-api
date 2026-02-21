@@ -65,7 +65,47 @@ const tokenStats = document.getElementById('tokenStats') as HTMLElement;
 const tradesSummarySection = document.getElementById('tradesSummarySection');
 const tradesSummaryLoading = document.getElementById('tradesSummaryLoading') as HTMLElement;
 const tradesSummaryLoadingText = document.getElementById('tradesSummaryLoadingText') as HTMLElement;
+const tradesFetchModePaged = document.getElementById('tradesFetchModePaged') as HTMLInputElement;
+const tradesFetchLock = document.getElementById('tradesFetchLock') as HTMLButtonElement;
+const tradesFetchSwitchLabel = document.getElementById('tradesFetchSwitchLabel') as HTMLLabelElement;
 const tradesSummaryError = document.getElementById('tradesSummaryError') as HTMLElement;
+
+const TRADES_FETCH_STORAGE_KEY = 'tradesFetchMode';
+const TRADES_FETCH_LOCKED_STORAGE_KEY = 'tradesFetchLocked';
+
+function getTradesFetchMode(): 'paged' | 'single' {
+  const v = localStorage.getItem(TRADES_FETCH_STORAGE_KEY);
+  return v === 'paged' || v === 'single' ? v : 'single';
+}
+
+function setTradesFetchMode(mode: 'paged' | 'single'): void {
+  localStorage.setItem(TRADES_FETCH_STORAGE_KEY, mode);
+}
+
+function isTradesFetchLocked(): boolean {
+  return localStorage.getItem(TRADES_FETCH_LOCKED_STORAGE_KEY) !== 'false';
+}
+
+function setTradesFetchLocked(locked: boolean): void {
+  localStorage.setItem(TRADES_FETCH_LOCKED_STORAGE_KEY, locked ? 'true' : 'false');
+}
+
+function applyTradesFetchUI(): void {
+  const locked = isTradesFetchLocked();
+  const mode = getTradesFetchMode();
+  if (tradesFetchLock) {
+    tradesFetchLock.setAttribute('aria-pressed', String(locked));
+  }
+  if (tradesFetchModePaged) {
+    tradesFetchModePaged.checked = mode === 'paged';
+  }
+  if (tradesFetchSwitchLabel) {
+    tradesFetchSwitchLabel.classList.toggle('trades-fetch-switch--locked', locked);
+    tradesFetchSwitchLabel.title = locked
+      ? 'Locked: mode follows volume (≥500k = Paged). Unlock to use your preference.'
+      : 'Paged: 10×100. Single: 1×1000.';
+  }
+}
 const tradesSummaryMeta = document.getElementById('tradesSummaryMeta') as HTMLElement;
 const tradesSummaryContent = document.getElementById('tradesSummaryContent') as HTMLElement;
 const topTradersLoading = document.getElementById('topTradersLoading') as HTMLElement;
@@ -535,20 +575,25 @@ fetchAllBtn.addEventListener('click', async () => {
   const tradesSummaryHeading = tradesSummarySection?.querySelector('.section-header h2');
   const usdVolume24h = (tokenData as TokenData | null)?.usdValueVolume24h ?? 0;
   const highVolume = usdVolume24h >= 500_000;
+  const locked = isTradesFetchLocked();
+  if (locked) {
+    if (tradesFetchModePaged) tradesFetchModePaged.checked = highVolume;
+  }
+  const usePaged = locked ? highVolume : (tradesFetchModePaged?.checked ?? getTradesFetchMode() === 'paged');
 
   const tradesPromise = (async () => {
     const buildTradesUrl = (opts: {
-      page: number;
       limit: number;
+      page?: number;
       timeStart?: number | null;
       timeEnd?: number | null;
     }): string => {
       const params = new URLSearchParams({
         mintAddress: mint,
         limit: String(opts.limit),
-        page: String(opts.page),
         sortByDesc: 'blockTime',
       });
+      if (opts.page !== undefined) params.set('page', String(opts.page));
       if (opts.timeStart != null && opts.timeStart >= 0) params.set('timeStart', String(opts.timeStart));
       if (opts.timeEnd != null && opts.timeEnd >= 0) params.set('timeEnd', String(opts.timeEnd));
       return `/api/trades?${params.toString()}`;
@@ -564,7 +609,7 @@ fetchAllBtn.addEventListener('click', async () => {
     };
 
     try {
-      if (highVolume) {
+      if (usePaged) {
         if (tradesSummaryHeading) tradesSummaryHeading.textContent = `Last ${TRADES_TOTAL} trades summary`;
         if (tradesSummaryLoadingText) tradesSummaryLoadingText.textContent = 'Loading… (0%)';
         const batches: (TradeRow[] | null)[] = Array(TRADES_TOTAL_PAGES).fill(null);
@@ -587,13 +632,16 @@ fetchAllBtn.addEventListener('click', async () => {
           }
         };
 
+        await fetchPage(0);
+        await new Promise((r) => setTimeout(r, 1000));
         await Promise.all(
-          Array.from({ length: TRADES_TOTAL_PAGES }, (_, p) => fetchPage(p))
+          Array.from({ length: TRADES_TOTAL_PAGES - 1 }, (_, i) => fetchPage(i + 1))
         );
       } else {
         if (tradesSummaryHeading) tradesSummaryHeading.textContent = 'Last trades summary';
+        if (tradesSummaryLoadingText) tradesSummaryLoadingText.textContent = 'Loading…';
         const res = await fetchWithRetry(
-          buildTradesUrl({ page: 0, limit: 1000 })
+          buildTradesUrl({ limit: 1000 })
         );
         const json = res.ok
           ? ((await res.json().catch(() => ({ data: [] }))) as { data?: TradeRow[] })
@@ -997,4 +1045,25 @@ function renderEmptyState(): void {
   hideSectionError(holdersError);
 }
 
+if (tradesFetchLock) {
+  tradesFetchLock.addEventListener('mouseleave', () => {
+    tradesFetchLock.classList.remove('trades-fetch-lock--no-hover');
+  });
+  tradesFetchLock.addEventListener('click', () => {
+    tradesFetchLock.classList.add('trades-fetch-lock--no-hover');
+    const locked = isTradesFetchLocked();
+    setTradesFetchLocked(!locked);
+    applyTradesFetchUI();
+  });
+}
+
+if (tradesFetchModePaged && tradesFetchSwitchLabel) {
+  tradesFetchModePaged.addEventListener('change', () => {
+    if (!isTradesFetchLocked()) {
+      setTradesFetchMode(tradesFetchModePaged.checked ? 'paged' : 'single');
+    }
+  });
+}
+
+applyTradesFetchUI();
 renderEmptyState();

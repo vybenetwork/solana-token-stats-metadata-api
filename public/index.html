@@ -49,13 +49,28 @@
     </section>
 
     <section class="trades-summary-section panel" id="tradesSummarySection">
-      <div class="section-header">
-        <h2>Last 1000 trades summary</h2>
-        <div class="section-loading" id="tradesSummaryLoading" hidden aria-hidden="true">
-          <span class="loading-spinner"></span>
-          <span class="loading-text" id="tradesSummaryLoadingText">Loading… (0%)</span>
+      <div class="section-header section-header--trades">
+        <div class="section-header-left">
+          <h2>Last 1000 trades summary</h2>
+          <div class="section-loading" id="tradesSummaryLoading" hidden aria-hidden="true">
+            <span class="loading-spinner"></span>
+            <span class="loading-text" id="tradesSummaryLoadingText">Loading… (0%)</span>
+          </div>
+          <span class="section-error" id="tradesSummaryError" hidden aria-hidden="true"></span>
         </div>
-        <span class="section-error" id="tradesSummaryError" hidden aria-hidden="true"></span>
+        <div class="trades-fetch-control">
+          <button type="button" class="trades-fetch-lock" id="tradesFetchLock" title="When locked, mode follows volume (≥500k = Paged). When unlocked, use your saved preference." aria-pressed="true" aria-label="Lock fetch mode to volume rule">
+            <svg class="trades-fetch-lock-icon trades-fetch-lock-icon--locked" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 11H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2z"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <svg class="trades-fetch-lock-icon trades-fetch-lock-icon--unlocked" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 11H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2z"/><path d="M7 11V7a5 5 0 0 1 5.5-5 5 5 0 0 1 4.5 3"/></svg>
+          </button>
+          <label class="trades-fetch-switch" id="tradesFetchSwitchLabel" title="Paged: 10×100. Single: 1×1000.">
+            <input type="checkbox" id="tradesFetchModePaged" class="trades-fetch-switch-input" />
+            <span class="trades-fetch-switch-track">
+              <span class="trades-fetch-switch-option" data-value="single">Single</span>
+              <span class="trades-fetch-switch-option" data-value="paged">Paged</span>
+            </span>
+          </label>
+        </div>
       </div>
       <div class="trades-summary-content" id="tradesSummaryContentWrap">
         <p class="meta" id="tradesSummaryMeta">—</p>

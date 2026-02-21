@@ -21,12 +21,13 @@ import {
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TRADES_LOG_FILE = path.join(__dirname, '..', 'trades-requests.log');
+const TRADES_LOG_ENABLED = process.env.TRADES_LOG === '1';
 
 function logTradesRequest(line: string): void {
+  if (!TRADES_LOG_ENABLED) return;
   const ts = new Date().toISOString();
   const full = `[${ts}] ${line}\n`;
   fs.appendFileSync(TRADES_LOG_FILE, full);
-  console.log('[trades]', line);
 }
 
 loadEnv();
@@ -90,7 +91,8 @@ app.get('/api/trades', async (req: Request, res: Response) => {
     const limitRaw = queryOne(req, 'limit');
     const limit = Math.min(limitRaw != null ? Number(limitRaw) : 250, 1000);
     const pageRaw = queryOne(req, 'page');
-    const page = pageRaw != null ? Number(pageRaw) : 0;
+    const page =
+      pageRaw != null && !Number.isNaN(Number(pageRaw)) ? Number(pageRaw) : undefined;
     const sortByDesc = queryOne(req, 'sortByDesc') ?? 'blockTime';
     const timeStartRaw = queryOne(req, 'timeStart');
     const timeStart =
@@ -104,16 +106,16 @@ app.get('/api/trades', async (req: Request, res: Response) => {
         : undefined;
     const opts = {
       limit: Number.isNaN(limit) ? 250 : limit,
-      page: Number.isNaN(page) ? 0 : page,
       sortByDesc,
+      ...(page !== undefined ? { page } : {}),
       ...(timeStart != null ? { timeStart } : {}),
       ...(timeEnd != null ? { timeEnd } : {}),
     };
     const q = new URLSearchParams({
       mintAddress,
       limit: String(opts.limit),
-      page: String(opts.page),
       sortByDesc: opts.sortByDesc,
+      ...(page !== undefined ? { page: String(page) } : {}),
       ...(timeStart != null ? { timeStart: String(timeStart) } : {}),
       ...(timeEnd != null ? { timeEnd: String(timeEnd) } : {}),
     });
@@ -121,7 +123,7 @@ app.get('/api/trades', async (req: Request, res: Response) => {
     logTradesRequest(`REQUEST → ${JSON.stringify(opts)}`);
     logTradesRequest(`URL → ${vybeUrl}`);
     const data = await client.getTrades(mintAddress, opts);
-    logTradesRequest(`OK page=${opts.page}`);
+    logTradesRequest(`OK ${page !== undefined ? `page=${page}` : 'single'}`);
     res.json(data);
   } catch (err) {
     const status = (err as { response?: { status?: number } })?.response?.status ?? 500;
