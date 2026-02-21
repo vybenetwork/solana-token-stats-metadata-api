@@ -33,8 +33,8 @@ export const VYBE_API_BASE = 'https://api.vybenetwork.xyz';
 /** Request timeout for Vybe API calls (ms). */
 export const VYBE_TIMEOUT_MS = 60_000;
 
-/** Max retries for 403/timeout before failing. */
-export const VYBE_MAX_RETRIES = 5;
+/** Max retries for backend/RPC calls before failing (total attempts = this + 1). */
+export const VYBE_MAX_RETRIES = 3;
 
 /** Delay between retries (ms). */
 export const VYBE_RETRY_DELAY_MS = 2000;

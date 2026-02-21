@@ -72,12 +72,10 @@ app.get('/api/trades', async (req: Request, res: Response) => {
   try {
     const mintAddress = param(req, 'mintAddress').trim();
     if (!mintAddress) return res.status(400).json({ error: 'mintAddress required' });
-    const limit = Math.min(Number(req.query.limit) || 1000, 1000);
+    const limit = Math.min(Number(req.query.limit) || 250, 1000);
     const page = Number(req.query.page) || 0;
     const sortByDesc = (req.query.sortByDesc as string) || 'blockTime';
-    const timeStart = req.query.timeStart !== undefined ? Number(req.query.timeStart) : undefined;
-    const timeEnd = req.query.timeEnd !== undefined ? Number(req.query.timeEnd) : undefined;
-    const data = await client.getTrades(mintAddress, { limit, page, sortByDesc, timeStart, timeEnd });
+    const data = await client.getTrades(mintAddress, { limit, page, sortByDesc });
     res.json(data);
   } catch (err) {
     const status = (err as { response?: { status?: number } })?.response?.status ?? 500;
@@ -101,8 +99,11 @@ app.get('/api/programs/labeled-program-account', async (req: Request, res: Respo
     const cache = readProgramCacheFromDisk();
     if (cache[programAddress] != null) return res.json(cache[programAddress]!);
     const data = await client.getLabeledProgramAccount(programAddress);
-    cache[programAddress] = data;
-    writeProgramCacheToDisk(cache);
+    const label = labelFromProgramResponse(data);
+    if (label != null && label.trim() !== '') {
+      cache[programAddress] = data;
+      writeProgramCacheToDisk(cache);
+    }
     res.json(data);
   } catch (err) {
     const status = (err as { response?: { status?: number } })?.response?.status ?? 500;
@@ -133,9 +134,12 @@ app.post('/api/programs/labeled-program-accounts', async (req: Request, res: Res
         batch.map(async (addr) => {
           try {
             const data = await client.getLabeledProgramAccount(addr);
-            cache[addr] = data;
-            updated = true;
-            return { addr, label: labelFromProgramResponse(data) };
+            const label = labelFromProgramResponse(data);
+            if (label != null && label.trim() !== '') {
+              cache[addr] = data;
+              updated = true;
+            }
+            return { addr, label: label ?? null };
           } catch {
             return { addr, label: null };
           }
@@ -177,9 +181,19 @@ app.get('/api/token-symbol/:mint', async (req: Request, res: Response) => {
       const cached = (cache[mint] ?? '').replace(/\0/g, '').trim();
       return res.json({ symbol: cached });
     }
-    const symbol = await getTokenSymbol(mint);
-    cache[mint] = symbol;
-    writeSymbolCacheToDisk(cache);
+    let symbol = await getTokenSymbol(mint);
+    if (symbol === mint || symbol.trim() === '') {
+      try {
+        const token = await client.getToken(mint);
+        symbol = (token.symbol ?? '').trim() || mint;
+      } catch {
+        symbol = mint;
+      }
+    }
+    if (symbol.trim() !== '' && symbol !== mint) {
+      cache[mint] = symbol;
+      writeSymbolCacheToDisk(cache);
+    }
     res.json({ symbol });
   } catch (err) {
     res.status(500).json({ error: (err as Error).message, symbol: req.params.mint });
@@ -201,21 +215,34 @@ app.post('/api/token-symbols', async (req: Request, res: Response) => {
       return true;
     });
     if (needFetch.length > 0) {
+      let cacheUpdated = false;
       const results = await Promise.all(
         needFetch.map(async (mint) => {
           try {
-            const symbol = await getTokenSymbol(mint);
-            cache[mint] = symbol;
-            return { mint, symbol };
+            let symbol = await getTokenSymbol(mint);
+            if (symbol === mint || symbol.trim() === '') {
+              try {
+                const token = await client.getToken(mint);
+                symbol = (token.symbol ?? '').trim() || mint;
+              } catch {
+                symbol = mint;
+              }
+            }
+            const trimmed = symbol.replace(/\0/g, '').trim();
+            if (trimmed !== '' && trimmed !== mint) {
+              cache[mint] = trimmed;
+              cacheUpdated = true;
+            }
+            return { mint, symbol: trimmed || mint };
           } catch {
             return { mint, symbol: mint };
           }
         })
       );
       for (const { mint, symbol } of results) {
-        symbols[mint] = symbol.replace(/\0/g, '').trim();
+        symbols[mint] = symbol;
       }
-      writeSymbolCacheToDisk(cache);
+      if (cacheUpdated) writeSymbolCacheToDisk(cache);
     }
     res.json({ symbols });
   } catch (err) {

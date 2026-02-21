@@ -38,17 +38,8 @@ export function toHumanReadableError(err: unknown): string {
   return String(err);
 }
 
-function shouldRetry(err: unknown): boolean {
-  if (axios.isAxiosError(err)) {
-    if (err.response?.status === 403) return true;
-    if (err.code === 'ECONNABORTED') return true;
-    if (err.message?.toLowerCase().includes('timeout')) return true;
-  }
-  return false;
-}
-
 /**
- * Run an async function with retries on 403/timeout.
+ * Run an async function with retries on error (2s delay, up to 3 retries).
  * @param fn - Function that performs one attempt
  * @returns Result of fn
  */
@@ -59,7 +50,7 @@ export async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
       return await fn();
     } catch (err) {
       lastErr = err;
-      if (shouldRetry(err) && attempt < VYBE_MAX_RETRIES) {
+      if (attempt < VYBE_MAX_RETRIES) {
         await new Promise((r) => setTimeout(r, VYBE_RETRY_DELAY_MS));
         continue;
       }

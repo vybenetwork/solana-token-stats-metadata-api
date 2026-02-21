@@ -356,6 +356,12 @@ async function processTradesAndRender(
     });
   });
   const baseSymbol = ((tokenData?.symbol) ?? '').toUpperCase() || '—';
+  const quoteList = displayList.slice(0, 10);
+  const marketList = top10Markets.slice(0, 10);
+  const quoteLen = quoteList.length;
+  const marketLen = marketList.length;
+  const rowCap =
+    quoteLen < 10 || marketLen < 10 ? Math.min(quoteLen, marketLen) : 10;
   renderTradesSummary({
     tradesCount: trades.length,
     uniqueProgramCount: top10Programs.length,
@@ -364,13 +370,13 @@ async function processTradesAndRender(
     programTradeCount,
     programTopMarkets,
     quoteSymbols,
-    top10QuoteMints: displayList.slice(0, 10),
-    top10Markets,
+    top10QuoteMints: quoteList.slice(0, rowCap),
+    top10Markets: marketList.slice(0, rowCap),
     baseSymbol,
   });
 }
 
-const TRADES_LIMIT = 1000;
+const TRADES_LIMIT = 250;
 
 fetchAllBtn.addEventListener('click', async () => {
   const mint = mintInput.value.trim();
@@ -388,11 +394,10 @@ fetchAllBtn.addEventListener('click', async () => {
   let tokenData: TokenData | null = null;
 
   hideSectionError(tradesSummaryError);
+  const tradesSummaryHeading = tradesSummarySection?.querySelector('.section-header h2');
+  if (tradesSummaryHeading) tradesSummaryHeading.textContent = `Last ${TRADES_LIMIT} trades summary`;
   const tokenUrl = `/api/tokens/${encodeURIComponent(mint)}`;
-  const nowSec = Math.floor(Date.now() / 1000);
-  const sec24h = 24 * 60 * 60; // API rejects intervals > ~24h; use 24h for first fetch
-  const tradesUrlFirst = `/api/trades?mintAddress=${encodeURIComponent(mint)}&limit=${TRADES_LIMIT}&page=0&sortByDesc=blockTime&timeStart=${nowSec - sec24h}&timeEnd=${nowSec}`;
-  const tradesUrlNoTime = `/api/trades?mintAddress=${encodeURIComponent(mint)}&limit=${TRADES_LIMIT}&page=0&sortByDesc=blockTime`;
+  const tradesUrl = `/api/trades?mintAddress=${encodeURIComponent(mint)}&limit=${TRADES_LIMIT}&page=0&sortByDesc=blockTime`;
   const topTradersUrl = `/api/wallets/top-traders?mintAddress=${encodeURIComponent(mint)}&resolution=30d&sortByDesc=realizedPnlUsd&limit=100`;
   const holdersUrl = `/api/tokens/${encodeURIComponent(mint)}/top-holders?page=0&limit=100&sortByDesc=percentageOfSupplyHeld`;
 
@@ -512,7 +517,7 @@ fetchAllBtn.addEventListener('click', async () => {
       holdersLoading.setAttribute('aria-hidden', 'true');
     });
 
-  const tradesPromise = fetchWithRetry(tradesUrlFirst)
+  const tradesPromise = fetchWithRetry(tradesUrl)
     .then(async (tradesRes) => {
       const tradesData = tradesRes.ok
         ? (await tradesRes.json().catch(() => ({ data: [] }))) as { data?: TradeRow[] }
@@ -528,20 +533,6 @@ fetchAllBtn.addEventListener('click', async () => {
       await processTradesAndRender(trades, mint, tokenData);
       tradesSummaryLoading.hidden = true;
       tradesSummaryLoading.setAttribute('aria-hidden', 'true');
-
-      if (trades.length < TRADES_LIMIT) {
-        fetchWithRetry(tradesUrlNoTime)
-          .then(async (refetchRes) => {
-            const refetchData = refetchRes.ok
-              ? (await refetchRes.json().catch(() => ({ data: [] }))) as { data?: TradeRow[] }
-              : { data: [] };
-            const newTrades = refetchData.data || [];
-            if (newTrades.length !== trades.length) {
-              await processTradesAndRender(newTrades, mint, tokenData);
-            }
-          })
-          .catch(() => {});
-      }
     })
     .catch(() => {
       showSectionError(tradesSummaryError, null, null);
