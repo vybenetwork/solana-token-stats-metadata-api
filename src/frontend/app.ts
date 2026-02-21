@@ -259,7 +259,14 @@ async function fetchWithRetry(url: string, options: RequestInit = {}): Promise<R
   throw lastErr;
 }
 
-type TradeRow = { quoteMintAddress?: string; programAddress?: string; marketAddress?: string };
+type TradeRow = { baseMintAddress?: string; quoteMintAddress?: string; programAddress?: string; marketAddress?: string };
+
+/** Each row has baseMintAddress and quoteMintAddress. Use the one that isn't the mint being analysed. */
+function otherMint(t: TradeRow, mintBeingAnalysed: string): string {
+  const base = (t.baseMintAddress ?? '').trim();
+  const quote = (t.quoteMintAddress ?? '').trim();
+  return base === mintBeingAnalysed ? quote : base;
+}
 
 async function processTradesAndRender(
   trades: TradeRow[],
@@ -272,10 +279,10 @@ async function processTradesAndRender(
   const marketCount: Record<string, number> = {};
   const marketQuoteCount: Record<string, Record<string, number>> = {};
   trades.forEach((t) => {
-    const q = t.quoteMintAddress;
+    const q = otherMint(t, mint).trim();
     const p = t.programAddress;
     const m = t.marketAddress;
-    if (q) quoteCountByMint[q] = (quoteCountByMint[q] || 0) + 1;
+    if (q && q !== mint) quoteCountByMint[q] = (quoteCountByMint[q] || 0) + 1;
     if (p) programTradeCount[p] = (programTradeCount[p] || 0) + 1;
     if (p && m) {
       if (!programMarketCount[p]) programMarketCount[p] = {};
