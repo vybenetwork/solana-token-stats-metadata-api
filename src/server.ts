@@ -70,12 +70,14 @@ app.get('/api/tokens/:mint/top-holders', async (req: Request, res: Response) => 
 
 app.get('/api/trades', async (req: Request, res: Response) => {
   try {
-    const baseMintAddress = param(req, 'baseMintAddress').trim();
-    if (!baseMintAddress) return res.status(400).json({ error: 'baseMintAddress required' });
+    const mintAddress = param(req, 'mintAddress').trim();
+    if (!mintAddress) return res.status(400).json({ error: 'mintAddress required' });
     const limit = Math.min(Number(req.query.limit) || 1000, 1000);
     const page = Number(req.query.page) || 0;
     const sortByDesc = (req.query.sortByDesc as string) || 'blockTime';
-    const data = await client.getTrades(baseMintAddress, { limit, page, sortByDesc });
+    const timeStart = req.query.timeStart !== undefined ? Number(req.query.timeStart) : undefined;
+    const timeEnd = req.query.timeEnd !== undefined ? Number(req.query.timeEnd) : undefined;
+    const data = await client.getTrades(mintAddress, { limit, page, sortByDesc, timeStart, timeEnd });
     res.json(data);
   } catch (err) {
     const status = (err as { response?: { status?: number } })?.response?.status ?? 500;

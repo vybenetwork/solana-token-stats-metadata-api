@@ -259,6 +259,119 @@ async function fetchWithRetry(url: string, options: RequestInit = {}): Promise<R
   throw lastErr;
 }
 
+type TradeRow = { quoteMintAddress?: string; programAddress?: string; marketAddress?: string };
+
+async function processTradesAndRender(
+  trades: TradeRow[],
+  mint: string,
+  tokenData: TokenData | null
+): Promise<void> {
+  const quoteCountByMint: Record<string, number> = {};
+  const programMarketCount: Record<string, Record<string, number>> = {};
+  const programTradeCount: Record<string, number> = {};
+  const marketCount: Record<string, number> = {};
+  const marketQuoteCount: Record<string, Record<string, number>> = {};
+  trades.forEach((t) => {
+    const q = t.quoteMintAddress;
+    const p = t.programAddress;
+    const m = t.marketAddress;
+    if (q) quoteCountByMint[q] = (quoteCountByMint[q] || 0) + 1;
+    if (p) programTradeCount[p] = (programTradeCount[p] || 0) + 1;
+    if (p && m) {
+      if (!programMarketCount[p]) programMarketCount[p] = {};
+      programMarketCount[p][m] = (programMarketCount[p][m] || 0) + 1;
+    }
+    if (m) {
+      marketCount[m] = (marketCount[m] || 0) + 1;
+      if (q && q !== mint) {
+        if (!marketQuoteCount[m]) marketQuoteCount[m] = {};
+        marketQuoteCount[m][q] = (marketQuoteCount[m][q] || 0) + 1;
+      }
+    }
+  });
+  const top10Markets = Object.entries(marketCount)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([addr, count]) => {
+      const quoteCounts = marketQuoteCount[addr] || {};
+      const bestQuoteMint =
+        Object.entries(quoteCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+      return { marketAddress: addr, count, bestQuoteMint };
+    });
+  const sortedByCount = Object.entries(quoteCountByMint).sort((a, b) => b[1] - a[1]);
+  const needSymbolMints = sortedByCount
+    .slice(0, 20)
+    .map(([mintAddr]) => mintAddr)
+    .filter((mintAddr) => !HARDCODED_QUOTE_SYMBOLS[mintAddr]);
+  const uniquePrograms = [...new Set(trades.map((t) => t.programAddress).filter(Boolean))] as string[];
+  const top10Programs = uniquePrograms
+    .sort((a, b) => (programTradeCount[b] ?? 0) - (programTradeCount[a] ?? 0))
+    .slice(0, 10);
+  const needLabel = top10Programs.filter((addr) => !WELL_KNOWN_PROGRAMS[addr]);
+  const [labelsRes, symbolsRes] = await Promise.all([
+    needLabel.length > 0
+      ? fetchWithRetry('/api/programs/labeled-program-accounts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ programAddresses: needLabel }),
+        })
+      : Promise.resolve({ ok: true, json: async () => ({ labels: {} }) } as Response),
+    needSymbolMints.length > 0
+      ? fetchWithRetry('/api/token-symbols', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mints: needSymbolMints }),
+        })
+      : Promise.resolve({ ok: true, json: async () => ({ symbols: {} }) } as Response),
+  ]);
+  const programLabels: Record<string, string> = {};
+  top10Programs.forEach((addr) => {
+    programLabels[addr] = WELL_KNOWN_PROGRAMS[addr] || addr;
+  });
+  if (labelsRes.ok) {
+    const body = (await labelsRes.json()) as { labels?: Record<string, string> };
+    Object.assign(programLabels, body.labels || {});
+  }
+  const quoteSymbols: Record<string, string> = { ...HARDCODED_QUOTE_SYMBOLS };
+  if (symbolsRes.ok) {
+    const body = (await symbolsRes.json()) as { symbols?: Record<string, string> };
+    Object.assign(quoteSymbols, body.symbols || {});
+  }
+  const displayList: { mint: string; count: number }[] = [];
+  for (const [mintAddr, count] of sortedByCount) {
+    if (hasQuoteSymbol(mintAddr, quoteSymbols)) {
+      displayList.push({ mint: mintAddr, count });
+      if (displayList.length >= 10) break;
+    }
+  }
+  const programTopMarkets: Record<string, { marketAddress: string; bestQuoteMint: string | null }[]> = {};
+  top10Programs.forEach((addr) => {
+    const byMarket = programMarketCount[addr] || {};
+    const sorted = Object.entries(byMarket).sort((a, b) => b[1] - a[1]);
+    programTopMarkets[addr] = sorted.map(([marketAddress]) => {
+      const quoteCounts = marketQuoteCount[marketAddress] || {};
+      const bestQuoteMint =
+        Object.entries(quoteCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+      return { marketAddress, bestQuoteMint };
+    });
+  });
+  const baseSymbol = ((tokenData?.symbol) ?? '').toUpperCase() || '—';
+  renderTradesSummary({
+    tradesCount: trades.length,
+    uniqueProgramCount: top10Programs.length,
+    programLabels,
+    uniquePrograms: top10Programs,
+    programTradeCount,
+    programTopMarkets,
+    quoteSymbols,
+    top10QuoteMints: displayList.slice(0, 10),
+    top10Markets,
+    baseSymbol,
+  });
+}
+
+const TRADES_LIMIT = 1000;
+
 fetchAllBtn.addEventListener('click', async () => {
   const mint = mintInput.value.trim();
   if (!mint) return;
@@ -276,7 +389,10 @@ fetchAllBtn.addEventListener('click', async () => {
 
   hideSectionError(tradesSummaryError);
   const tokenUrl = `/api/tokens/${encodeURIComponent(mint)}`;
-  const tradesUrl = `/api/trades?baseMintAddress=${encodeURIComponent(mint)}&limit=1000&page=0&sortByDesc=blockTime`;
+  const nowSec = Math.floor(Date.now() / 1000);
+  const sec24h = 24 * 60 * 60; // API rejects intervals > ~24h; use 24h for first fetch
+  const tradesUrlFirst = `/api/trades?mintAddress=${encodeURIComponent(mint)}&limit=${TRADES_LIMIT}&page=0&sortByDesc=blockTime&timeStart=${nowSec - sec24h}&timeEnd=${nowSec}`;
+  const tradesUrlNoTime = `/api/trades?mintAddress=${encodeURIComponent(mint)}&limit=${TRADES_LIMIT}&page=0&sortByDesc=blockTime`;
   const topTradersUrl = `/api/wallets/top-traders?mintAddress=${encodeURIComponent(mint)}&resolution=30d&sortByDesc=realizedPnlUsd&limit=100`;
   const holdersUrl = `/api/tokens/${encodeURIComponent(mint)}/top-holders?page=0&limit=100&sortByDesc=percentageOfSupplyHeld`;
 
@@ -396,10 +512,10 @@ fetchAllBtn.addEventListener('click', async () => {
       holdersLoading.setAttribute('aria-hidden', 'true');
     });
 
-  const tradesPromise = fetchWithRetry(tradesUrl)
+  const tradesPromise = fetchWithRetry(tradesUrlFirst)
     .then(async (tradesRes) => {
       const tradesData = tradesRes.ok
-        ? (await tradesRes.json().catch(() => ({ data: [] }))) as { data?: { quoteMintAddress?: string; programAddress?: string; marketAddress?: string }[] }
+        ? (await tradesRes.json().catch(() => ({ data: [] }))) as { data?: TradeRow[] }
         : { data: [] };
       const trades = tradesData.data || [];
       if (trades.length === 0) {
@@ -409,121 +525,23 @@ fetchAllBtn.addEventListener('click', async () => {
         tradesSummaryLoading.setAttribute('aria-hidden', 'true');
         return;
       }
-      const quoteCountByMint: Record<string, number> = {};
-      const programMarketCount: Record<string, Record<string, number>> = {};
-      const programTradeCount: Record<string, number> = {};
-      const marketCount: Record<string, number> = {};
-      const marketQuoteCount: Record<string, Record<string, number>> = {};
-      const baseMint = mint;
-      trades.forEach((t) => {
-        const q = t.quoteMintAddress;
-        const p = t.programAddress;
-        const m = t.marketAddress;
-        if (q) quoteCountByMint[q] = (quoteCountByMint[q] || 0) + 1;
-        if (p) programTradeCount[p] = (programTradeCount[p] || 0) + 1;
-        if (p && m) {
-          if (!programMarketCount[p]) programMarketCount[p] = {};
-          programMarketCount[p][m] = (programMarketCount[p][m] || 0) + 1;
-        }
-        if (m) {
-          marketCount[m] = (marketCount[m] || 0) + 1;
-          if (q && q !== baseMint) {
-            if (!marketQuoteCount[m]) marketQuoteCount[m] = {};
-            marketQuoteCount[m][q] = (marketQuoteCount[m][q] || 0) + 1;
-          }
-        }
-      });
-      const top10Markets = Object.entries(marketCount)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 10)
-        .map(([addr, count]) => {
-          const quoteCounts = marketQuoteCount[addr] || {};
-          const bestQuoteMint =
-            Object.entries(quoteCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
-          return { marketAddress: addr, count, bestQuoteMint };
-        });
-
-      const sortedByCount = Object.entries(quoteCountByMint).sort((a, b) => b[1] - a[1]);
-      const needSymbolMints = sortedByCount
-        .slice(0, 20)
-        .map(([mintAddr]) => mintAddr)
-        .filter((mintAddr) => !HARDCODED_QUOTE_SYMBOLS[mintAddr]);
-
-      const uniquePrograms = [...new Set(trades.map((t) => t.programAddress).filter(Boolean))] as string[];
-      const top10Programs = uniquePrograms
-        .sort((a, b) => (programTradeCount[b] ?? 0) - (programTradeCount[a] ?? 0))
-        .slice(0, 10);
-      const needLabel = top10Programs.filter((addr) => !WELL_KNOWN_PROGRAMS[addr]);
-
-      const [labelsRes, symbolsRes] = await Promise.all([
-        needLabel.length > 0
-          ? fetchWithRetry('/api/programs/labeled-program-accounts', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ programAddresses: needLabel }),
-            })
-          : Promise.resolve({ ok: true, json: async () => ({ labels: {} }) } as Response),
-        needSymbolMints.length > 0
-          ? fetchWithRetry('/api/token-symbols', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ mints: needSymbolMints }),
-            })
-          : Promise.resolve({ ok: true, json: async () => ({ symbols: {} }) } as Response),
-      ]);
-
-      const programLabels: Record<string, string> = {};
-      top10Programs.forEach((addr) => {
-        programLabels[addr] = WELL_KNOWN_PROGRAMS[addr] || addr;
-      });
-      if (labelsRes.ok) {
-        const body = (await labelsRes.json()) as { labels?: Record<string, string> };
-        const labels = body.labels || {};
-        Object.assign(programLabels, labels);
-      }
-
-      const quoteSymbols: Record<string, string> = { ...HARDCODED_QUOTE_SYMBOLS };
-      if (symbolsRes.ok) {
-        const body = (await symbolsRes.json()) as { symbols?: Record<string, string> };
-        const symbols = body.symbols || {};
-        Object.assign(quoteSymbols, symbols);
-      }
-      const displayList: { mint: string; count: number }[] = [];
-      for (const [mintAddr, count] of sortedByCount) {
-        if (hasQuoteSymbol(mintAddr, quoteSymbols)) {
-          displayList.push({ mint: mintAddr, count });
-          if (displayList.length >= 10) break;
-        }
-      }
-      const top10QuoteMintsWithSymbol = displayList.slice(0, 10);
-
-      const programTopMarkets: Record<string, { marketAddress: string; bestQuoteMint: string | null }[]> = {};
-      top10Programs.forEach((addr) => {
-        const byMarket = programMarketCount[addr] || {};
-        const sorted = Object.entries(byMarket).sort((a, b) => b[1] - a[1]);
-        programTopMarkets[addr] = sorted.map(([marketAddress]) => {
-          const quoteCounts = marketQuoteCount[marketAddress] || {};
-          const bestQuoteMint =
-            Object.entries(quoteCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
-          return { marketAddress, bestQuoteMint };
-        });
-      });
-
-      const baseSymbol = ((tokenData?.symbol) ?? '').toUpperCase() || '—';
-      renderTradesSummary({
-        tradesCount: trades.length,
-        uniqueProgramCount: top10Programs.length,
-        programLabels,
-        uniquePrograms: top10Programs,
-        programTradeCount,
-        programTopMarkets,
-        quoteSymbols,
-        top10QuoteMints: top10QuoteMintsWithSymbol,
-        top10Markets,
-        baseSymbol,
-      });
+      await processTradesAndRender(trades, mint, tokenData);
       tradesSummaryLoading.hidden = true;
       tradesSummaryLoading.setAttribute('aria-hidden', 'true');
+
+      if (trades.length < TRADES_LIMIT) {
+        fetchWithRetry(tradesUrlNoTime)
+          .then(async (refetchRes) => {
+            const refetchData = refetchRes.ok
+              ? (await refetchRes.json().catch(() => ({ data: [] }))) as { data?: TradeRow[] }
+              : { data: [] };
+            const newTrades = refetchData.data || [];
+            if (newTrades.length !== trades.length) {
+              await processTradesAndRender(newTrades, mint, tokenData);
+            }
+          })
+          .catch(() => {});
+      }
     })
     .catch(() => {
       showSectionError(tradesSummaryError, null, null);

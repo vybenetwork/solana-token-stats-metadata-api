@@ -16,6 +16,10 @@ export interface GetTradesOptions {
   limit?: number;
   page?: number;
   sortByDesc?: string;
+  /** Start time (unix timestamp). */
+  timeStart?: number;
+  /** End time (unix timestamp). */
+  timeEnd?: number;
 }
 
 /**
@@ -29,11 +33,12 @@ export async function getTrades(
   baseMintAddress: string,
   options: GetTradesOptions = {}
 ): Promise<VybeTradesResponse> {
-  const { limit = 1000, page = 0, sortByDesc = 'blockTime' } = options;
+  const { limit = 1000, page = 0, sortByDesc = 'blockTime', timeStart, timeEnd } = options;
   return withRetry(async () => {
-    const { data } = await http.get<VybeTradesResponse>('/v4/trades', {
-      params: { baseMintAddress, limit, page, sortByDesc },
-    });
+    const params: Record<string, unknown> = { baseMintAddress, limit, page, sortByDesc };
+    if (timeStart != null) params.timeStart = timeStart;
+    if (timeEnd != null) params.timeEnd = timeEnd;
+    const { data } = await http.get<VybeTradesResponse>('/v4/trades', { params });
     return data;
   });
 }
