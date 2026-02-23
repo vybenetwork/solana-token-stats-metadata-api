@@ -725,7 +725,7 @@ function renderToken(t: TokenData): void {
   };
 
   const mintLink = t.mintAddress
-    ? `<a href="${SOLSCAN_TOKEN}${encodeURIComponent(t.mintAddress)}" target="_blank" rel="noopener noreferrer" class="mono" title="${t.mintAddress}">${t.mintAddress}</a>`
+    ? `<a href="${VYBE_TOKEN}${encodeURIComponent(t.mintAddress)}" target="_blank" rel="noopener noreferrer" class="mono" title="${t.mintAddress}">${t.mintAddress}</a>`
     : '—';
   const overview: SectionSpec = {
     icon: tokenSectionIcons.overview,
@@ -783,6 +783,8 @@ function renderToken(t: TokenData): void {
 
 const SOLSCAN_ACCOUNT = 'https://solscan.io/account/';
 const SOLSCAN_TOKEN = 'https://solscan.io/token/';
+const VYBE_TOKEN = 'https://vybe.fyi/tokens/';
+const VYBE_WALLET = 'https://vybe.fyi/wallets/';
 
 function renderTradesSummary(opts: {
   tradesCount: number;
@@ -831,7 +833,7 @@ function renderTradesSummary(opts: {
     .join('');
   const quoteRows = top10QuoteMints
     .map(({ mint, count }) => {
-      const mintLink = `<a href="${SOLSCAN_TOKEN}${encodeURIComponent(mint)}" target="_blank" rel="noopener noreferrer" class="mono" title="${mint}">${truncateAddress(mint)}</a>`;
+      const mintLink = `<a href="${VYBE_TOKEN}${encodeURIComponent(mint)}" target="_blank" rel="noopener noreferrer" class="mono" title="${mint}">${truncateAddress(mint)}</a>`;
       return `<tr><td>${quoteDisplay(mint, quoteSymbols)}</td><td>${mintLink}</td><td>${count}</td></tr>`;
     })
     .join('');
@@ -889,7 +891,7 @@ function renderTopTraders(data: { data?: TopTraderRow[] }): void {
           const addr = row.accountAddress;
           const display = row.accountName || (addr ? truncateAddress(addr) : '—');
           const accountLink = addr
-            ? `<a href="${SOLSCAN_ACCOUNT}${encodeURIComponent(addr)}" target="_blank" rel="noopener noreferrer" class="mono" title="${addr}">${display}</a>`
+            ? `<a href="${VYBE_WALLET}${encodeURIComponent(addr)}" target="_blank" rel="noopener noreferrer" class="mono" title="${addr}">${display}</a>`
             : `<span class="mono">${display}</span>`;
           const m = row.metrics || {};
           const realizedPnl = m.realizedPnlUsd != null ? formatUsdFull(Number(m.realizedPnlUsd)) : '—';
@@ -926,7 +928,7 @@ function renderHolders(data: { data?: HolderRow[] }): void {
           const rank = h.rank ?? '—';
           const ownerDisplay = h.ownerName || (h.ownerAddress ? truncateAddress(h.ownerAddress) : '—');
           const ownerLink = h.ownerAddress
-            ? `<a href="${SOLSCAN_ACCOUNT}${encodeURIComponent(h.ownerAddress)}" target="_blank" rel="noopener noreferrer" class="mono" title="${h.ownerAddress}">${ownerDisplay}</a>`
+            ? `<a href="${VYBE_WALLET}${encodeURIComponent(h.ownerAddress)}" target="_blank" rel="noopener noreferrer" class="mono" title="${h.ownerAddress}">${ownerDisplay}</a>`
             : `<span class="mono">${ownerDisplay}</span>`;
           const sym = tokenSymbol?.textContent ? tokenSymbol.textContent.trim().toUpperCase() : '';
           const balance =

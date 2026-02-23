@@ -223,8 +223,9 @@ app.get('/api/wallets/top-traders', async (req: Request, res: Response) => {
 });
 
 app.get('/api/token-symbol/:mint', async (req: Request, res: Response) => {
+  let mint: string | undefined;
   try {
-    const mint = param(req, 'mint').trim();
+    mint = param(req, 'mint').trim();
     if (!mint) return res.status(400).json({ error: 'Mint address required' });
     const cache = readSymbolCacheFromDisk();
     if (cache[mint] != null) {
@@ -246,7 +247,7 @@ app.get('/api/token-symbol/:mint', async (req: Request, res: Response) => {
     }
     res.json({ symbol });
   } catch (err) {
-    res.status(500).json({ error: (err as Error).message, symbol: req.params.mint });
+    res.status(500).json({ error: (err as Error).message, symbol: mint });
   }
 });
 
@@ -310,24 +311,37 @@ app.listen(PORT, () => {
       stdio: ['ignore', 'pipe', 'pipe'],
     });
     const tunnelUrlRe = /https:\/\/[a-z0-9-]+\.trycloudflare\.com/;
+    let tunnelListenerTimeout: ReturnType<typeof setTimeout> | undefined;
+    const cleanupListeners = () => {
+      if (tunnelListenerTimeout != null) {
+        clearTimeout(tunnelListenerTimeout);
+        tunnelListenerTimeout = undefined;
+      }
+      if (child.stderr) child.stderr.removeListener('data', onData);
+      if (child.stdout) child.stdout.removeListener('data', onData);
+    };
     const onData = (chunk: Buffer | string) => {
       const text = chunk.toString();
       const match = text.match(tunnelUrlRe);
       if (match) {
         console.log('\n  Cloudflare Tunnel URL: ' + match[0]);
         console.log('  Share this URL to access the app from the internet.\n');
-        child.stderr?.off?.('data', onData);
-        child.stdout?.off?.('data', onData);
+        cleanupListeners();
       }
     };
+    tunnelListenerTimeout = setTimeout(() => {
+      cleanupListeners();
+    }, 60_000);
     child.stderr?.on('data', onData);
     child.stdout?.on('data', onData);
     child.on('error', (err: Error) => {
       console.error('Tunnel failed (is cloudflared installed?):', err.message);
       console.error('Install: https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/install-and-setup/installation/');
+      cleanupListeners();
     });
     child.on('exit', (code: number | null) => {
       if (code != null && code !== 0) console.error('cloudflared exited with code', code);
+      cleanupListeners();
     });
   }
 });
