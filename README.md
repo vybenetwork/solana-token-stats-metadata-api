@@ -2,13 +2,9 @@
 
 This repository demonstrates how to use the Vybe Solana Token API to fetch token stats and metadata for any SPL token.
 
-![Token metadata and stats](screenshots/token-metadata-spl-token2022-solana-api.png)
+Token metadata and stats
 
-<p align="center">
-  <img src="screenshots/top-traders-solana-api.png" alt="Top traders by realized PnL (30d)" width="260" style="min-width:260px;max-width:260px;margin-right:10px;" />
-  <img src="screenshots/top-markets-token-solana-api.png" alt="Top markets (from last 1000 trades)" width="224" style="min-width:224px;max-width:224px;margin-right:10px;" />
-  <img src="screenshots/top-token-holders-solana-api.png" alt="Top token holders" width="260" style="min-width:260px;max-width:260px;" />
-</p>
+
 
 ## Prerequisites
 
@@ -28,16 +24,18 @@ cp .env.example .env
 npm start
 ```
 
-Then open **http://localhost:3000**, enter a token mint, and click **Load Token Metadata & Top Holders**.
+Then open **[http://localhost:3000](http://localhost:3000)**, enter a token mint, and click **Load Token Metadata & Top Holders**.
 
 ## Environment Variables
 
-| Variable | Required | Description | Example |
-|----------|----------|-------------|---------|
-| `VYBE_API_KEY` | Yes | Vybe API key for all Vybe requests | `your_api_key_here` |
-| `SOLANA_RPC_URL` | No | RPC for Metaplex symbol lookup (token-symbol fallback) | `https://api.mainnet-beta.solana.com` |
-| `PORT` | No | Server port | `3000` |
-| `TUNNEL` | No | Set to `1` to run with Cloudflare Tunnel | `1` |
+
+| Variable         | Required | Description                                            | Example                               |
+| ---------------- | -------- | ------------------------------------------------------ | ------------------------------------- |
+| `VYBE_API_KEY`   | Yes      | Vybe API key for all Vybe requests                     | `your_api_key_here`                   |
+| `SOLANA_RPC_URL` | No       | RPC for Metaplex symbol lookup (token-symbol fallback) | `https://api.mainnet-beta.solana.com` |
+| `PORT`           | No       | Server port                                            | `3000`                                |
+| `TUNNEL`         | No       | Set to `1` to run with Cloudflare Tunnel               | `1`                                   |
+
 
 Get your API key at [vybenetwork.com/pricing](https://vybenetwork.com/pricing).
 
@@ -70,6 +68,24 @@ This repo includes:
 - Trades endpoint (most recent 1000 trades)
 - A browser-based web app (GUI) to browse token stats, most recent 1000 trades, top traders (filtered by mint), and top holders in one view (mint, quote mint, program address, market address, and owner addresses link to Solscan in a new tab; links use a consistent blue style)
 
+---
+
+### Solana API docs for these endpoints
+
+- **Token details (`GET /v4/tokens/{mintAddress}`)**:
+  - [https://docs.vybenetwork.com/reference/get_token_details_v4](https://docs.vybenetwork.com/reference/get_token_details_v4)
+- **Top holders (`GET /v4/tokens/{mintAddress}/top-holders`)**:
+  - [https://docs.vybenetwork.com/reference/get_top_holders_v4](https://docs.vybenetwork.com/reference/get_top_holders_v4)
+
+- **Trades (**`GET /v4/trades`**)**:
+  - [https://docs.vybenetwork.com/reference/get_trade_data_program_v4](https://docs.vybenetwork.com/reference/get_trade_data_program_v4)
+- **Labeled programs (`GET /v4/programs/labeled-program-accounts`)**:
+  - [https://docs.vybenetwork.com/reference/get_known_program_accounts_v4](https://docs.vybenetwork.com/reference/get_known_program_accounts_v4)
+- **Top traders (`GET /v4/wallets/top-traders`)**:
+  - [https://docs.vybenetwork.com/reference/get_top_traders_v4](https://docs.vybenetwork.com/reference/get_top_traders_v4)
+
+---
+
 ## Why This Matters
 
 Token stats and metadata are foundational for:
@@ -90,6 +106,8 @@ This demo uses:
 - **Top traders endpoint** — top 100 wallets by realized PnL (30d) for the token
 - **Trades endpoint** — last 1000 trades to build programs, quote tokens, and markets summary
 - **Labeled program endpoint** — per-address Vybe lookup for top-10 program labels (well-known map first, then queued requests)
+
+---
 
 ## What You Get
 
@@ -116,18 +134,18 @@ For any SPL token mint.
 - Table columns: Market address, Pair, Count.
 - Market addresses link to Solscan in a new tab.
 
-![Top markets (from last 1000 trades)](screenshots/top-markets-token-solana-api.png)
+Top markets (from last 1000 trades)
 
 ### Top Traders (30d)
 
 - Fetches **top traders** via `GET /v4/wallets/top-traders` with `mintAddress`, `resolution=30d`, `sortByDesc=realizedPnlUsd`, `limit=100` (server proxy: `GET /api/wallets/top-traders?…`).
 - The endpoint is filtered by `mintAddress`.
 - Table columns: #, Account, Realized PnL (USD), Trades, Volume (USD), Win rate.
-- Realized PnL and Volume (USD) are shown as full amounts with a leading `$` and trailing ` USD`; no decimals unless value is less than 10 (then up to 2 decimals).
+- Realized PnL and Volume (USD) are shown as full amounts with a leading `$` and trailing  `USD`; no decimals unless value is less than 10 (then up to 2 decimals).
 - Win rate is shown as value then `%` (e.g. `42%`); 2 decimals only when value is less than 1.
 - Account addresses link to Solscan in a new tab.
 
-![Top traders by realized PnL (30d)](screenshots/top-traders-solana-api.png)
+Top traders by realized PnL (30d)
 
 ### Top Holders
 
@@ -136,7 +154,7 @@ For any SPL token mint.
 - Shows top 100 by highest % of supply (updated every 3 hours).
 - Owner addresses link to Solscan in a new tab.
 
-![Top token holders](screenshots/top-token-holders-solana-api.png)
+Top token holders
 
 ### Fetch sequence (web app)
 
@@ -145,29 +163,28 @@ For any SPL token mint.
   - Each section has its own loading indicator next to the title.
   - If one section fails, the others keep loading.
   - Failed sections show `Failed (code X)` / `Failed (status)`.
-
 - **Request order**
   1. **Token details**
-     - Endpoint: `GET /v4/tokens/{mintAddress}`
-     - If this fails, fallback to `GET /api/token-symbol/:mint` (Metaplex) to still show symbol + mint.
+    - Endpoint: `GET /v4/tokens/{mintAddress}`
+    - If this fails, fallback to `GET /api/token-symbol/:mint` (Metaplex) to still show symbol + mint.
   2. **Most recent 1000 trades**
-     - Endpoint: `GET /v4/trades` (server: `GET /api/trades?mintAddress=…&limit=1000&page=0&sortByDesc=blockTime`)
-     - Used to build top programs, top quote tokens, and top markets.
+    - Endpoint: `GET /v4/trades` (server: `GET /api/trades?mintAddress=…&limit=1000&page=0&sortByDesc=blockTime`)
+    - Used to build top programs, top quote tokens, and top markets.
   3. **Program labels (top 10 programs)**
-     - For each of the top 10 programs that does not already have a label in the well-known map (Raydium, Orca, Pump.fun, Meteora, Phoenix, Jupiter, etc.), the app calls `GET /api/programs/labeled-program-account?programAddress=…` (one request per address, queued with concurrency 2). The Vybe API used is `GET /v4/programs/labeled-program-accounts?programAddress=…`.
+    - For each of the top 10 programs that does not already have a label in the well-known map (Raydium, Orca, Pump.fun, Meteora, Phoenix, Jupiter, etc.), the app calls `GET /api/programs/labeled-program-account?programAddress=…` (one request per address, queued with concurrency 2). The Vybe API used is `GET /v4/programs/labeled-program-accounts?programAddress=…`.
   4. **Quote symbols**
-     - Source priority:
-       - Hardcoded: WSOL, USDC
-       - Fallback: `GET /api/token-symbol/:mint`
-     - Continues in batches until 10 displayable quote symbols are found (or exhausted).
+    - Source priority:
+      - Hardcoded: WSOL, USDC
+      - Fallback: `GET /api/token-symbol/:mint`
+    - Continues in batches until 10 displayable quote symbols are found (or exhausted).
   5. **Top traders + top holders** (parallel)
-     - Top traders:
-       - Endpoint: `GET /v4/wallets/top-traders`
-       - Params: `mintAddress`, `resolution=30d`, `sortByDesc=realizedPnlUsd`, `limit=100`
-       - Proxy: `GET /api/wallets/top-traders?…`
-     - Top holders:
-       - Endpoint: `GET /v4/tokens/{mintAddress}/top-holders`
-       - Params: `page=0`, `limit=100`, `sortByDesc=percentageOfSupplyHeld`
+    - Top traders:
+      - Endpoint: `GET /v4/wallets/top-traders`
+      - Params: `mintAddress`, `resolution=30d`, `sortByDesc=realizedPnlUsd`, `limit=100`
+      - Proxy: `GET /api/wallets/top-traders?…`
+    - Top holders:
+      - Endpoint: `GET /v4/tokens/{mintAddress}/top-holders`
+      - Params: `page=0`, `limit=100`, `sortByDesc=percentageOfSupplyHeld`
 
 ### Last 1000 trades: fetch and top 10 extraction
 
@@ -175,7 +192,6 @@ For any SPL token mint.
   - Endpoint: `GET /v4/trades`
   - Params: `mintAddress`, `limit=1000`, `sortByDesc=blockTime`
   - Server proxy: `GET /api/trades?mintAddress=…&…`
-
 - **Top 10 programs**
   - Aggregate by `programAddress`.
   - Sort by trade count descending.
@@ -188,7 +204,6 @@ For any SPL token mint.
     - Compute pair as base token / most common quote mint in that market.
   - Rows with no resolvable top market (e.g. unresolved pool or scam token) are omitted from the table.
   - Program and market addresses link to Solscan.
-
 - **Top 10 quote tokens**
   - Aggregate by `quoteMintAddress`.
   - Sort by trade count descending.
@@ -200,7 +215,6 @@ For any SPL token mint.
     - Symbol
     - Mint
     - Count
-
 - **Top 10 markets**
   - Aggregate by `marketAddress`.
   - Sort by trade count descending.
@@ -311,7 +325,7 @@ VYBE_API_KEY="your-api-key" npm run dev
 
 Open:
 
-**http://localhost:3000**
+**[http://localhost:3000](http://localhost:3000)**
 
 Enter a token mint and click **Load Token Metadata & Top Holders**. The view resets to placeholders (—) and then loads token stats, last 1000 trades summary (programs, quote tokens, markets), top traders (30d), and top holders. Each section shows its own loading state and, on failure, a red “Failed (code X)” or “Failed (status)” next to the section title while other sections continue to load.
 
@@ -358,13 +372,15 @@ The app uses a **60-second timeout** for Vybe requests. If the Vybe API is slow,
 
 ### 1️⃣ Token Details (Stats & Metadata)
 
-**`GET /v4/tokens/{mintAddress}`**
+`**GET /v4/tokens/{mintAddress}`** — [API docs](https://docs.vybenetwork.com/reference/get_token_details_v4)
 
 Retrieve token stats, metadata, and metrics.
 
-| Parameter    | Required | Description           |
-|-------------|----------|-----------------------|
+
+| Parameter   | Required | Description              |
+| ----------- | -------- | ------------------------ |
 | mintAddress | Yes      | Token mint (SPL, base58) |
+
 
 No query parameters.
 
@@ -386,57 +402,63 @@ Response fields include:
 
 ### 2️⃣ Top Holders
 
-**`GET /v4/tokens/{mintAddress}/top-holders`**
+`**GET /v4/tokens/{mintAddress}/top-holders**` — [API docs](https://docs.vybenetwork.com/reference/get_top_holders_v4)
 
 Returns the top 100 token holders sorted by highest percentage of supply (updated every 3 hours). Request uses `page=0`, `limit=100`, `sortByDesc=percentageOfSupplyHeld`. Fetched when loading a token; if the response is positive (e.g. token on Pump.fun or PumpSwap), the table is shown.
 
-| Parameter     | Required | Description |
-|---------------|----------|-------------|
-| mintAddress   | Yes      | Token mint (path) |
-| limit         | No       | Per page (default/max 100) |
-| page          | No       | 0-indexed |
-| sortByAsc     | No       | e.g. `rank`, `valueUsd`, `balance`, `percentageOfSupplyHeld` |
-| sortByDesc    | No       | Same options |
+
+| Parameter   | Required | Description                                                  |
+| ----------- | -------- | ------------------------------------------------------------ |
+| mintAddress | Yes      | Token mint (path)                                            |
+| limit       | No       | Per page (default/max 100)                                   |
+| page        | No       | 0-indexed                                                    |
+| sortByAsc   | No       | e.g. `rank`, `valueUsd`, `balance`, `percentageOfSupplyHeld` |
+| sortByDesc  | No       | Same options                                                 |
+
 
 - [Top Holders (API reference)](https://docs.vybenetwork.com/reference/get_top_holders_v4)
 
 ### 3️⃣ Last 1000 Trades
 
-**`GET /v4/trades`**
+`**GET /v4/trades**` — [API docs](https://docs.vybenetwork.com/reference/get_trade_data_program_v4)
 
-Returns the last 1000 trades for a base token. Used to build the **Last 1000 trades summary** (top 10 programs and top 10 quote tokens with symbols). The server proxies this as **`GET /api/trades?mintAddress=…&limit=1000&page=0&sortByDesc=blockTime`**.
+Returns the last 1000 trades for a base token. Used to build the **Last 1000 trades summary** (top 10 programs and top 10 quote tokens with symbols). The server proxies this as `**GET /api/trades?mintAddress=…&limit=1000&page=0&sortByDesc=blockTime`**.
 
-| Parameter   | Required | Description |
-|-------------|----------|-------------|
-| mintAddress | Yes      | Token mint (query) |
-| limit            | No       | Default/max 1000 |
-| page             | No       | Page index (default 0) |
-| sortByDesc       | No       | e.g. `blockTime` |
+
+| Parameter   | Required | Description            |
+| ----------- | -------- | ---------------------- |
+| mintAddress | Yes      | Token mint (query)     |
+| limit       | No       | Default/max 1000       |
+| page        | No       | Page index (default 0) |
+| sortByDesc  | No       | e.g. `blockTime`       |
+
 
 ### 4️⃣ Labeled program account (per address)
 
-**`GET /api/programs/labeled-program-account?programAddress=…`**
+`**GET /api/programs/labeled-program-account?programAddress=…**`
 
-Returns the labeled program for a single program address. The server proxies to Vybe `GET /v4/programs/labeled-program-accounts?programAddress=…`. The app calls this once per top-10 program that does not already have a label (well-known map used first); requests are queued with concurrency 2. Response shape: `{ programs?: [{ programAddress, name?, labels?: string[] }] }`.
+Returns the labeled program for a single program address. The server proxies to Vybe `GET /v4/programs/labeled-program-accounts?programAddress=…` ([API docs](https://docs.vybenetwork.com/reference/get_known_program_accounts_v4)). The app calls this once per top-10 program that does not already have a label (well-known map used first); requests are queued with concurrency 2. Response shape: `{ programs?: [{ programAddress, name?, labels?: string[] }] }`.
 
 ### 5️⃣ Top Traders
 
-**`GET /v4/wallets/top-traders`** (proxied as **`GET /api/wallets/top-traders`**)
+`**GET /v4/wallets/top-traders**` (proxied as `**GET /api/wallets/top-traders**`) — [API docs](https://docs.vybenetwork.com/reference/get_top_traders_v4)
 
 Returns the top 100 wallets by realized PnL for a token over 30 days. Used in the **Top traders (by realized PnL, 30d)** section.
 
-| Parameter   | Required | Description |
-|-------------|----------|-------------|
-| mintAddress | Yes      | Token mint (query) |
-| resolution  | No       | Default `30d` |
+
+| Parameter   | Required | Description              |
+| ----------- | -------- | ------------------------ |
+| mintAddress | Yes      | Token mint (query)       |
+| resolution  | No       | Default `30d`            |
 | sortByDesc  | No       | Default `realizedPnlUsd` |
-| limit       | No       | Default/max 100 |
+| limit       | No       | Default/max 100          |
+
 
 - [Top Traders (API reference)](https://docs.vybenetwork.com/reference/get_top_traders_v4)
 
 ### 6️⃣ Token symbol (server)
 
-**`GET /api/token-symbol/:mint`**
+`**GET /api/token-symbol/:mint`**
 
 Returns the symbol for a mint (Metaplex metadata). Used for quote token symbols in the trades summary and as a fallback when the Vybe token-details request fails (so the app can still show symbol + mint). Optional env: `SOLANA_RPC_URL` for Metaplex RPC (default: public mainnet).
 
@@ -489,13 +511,16 @@ Promise.all([
 
 ## Troubleshooting
 
-| Issue | What to do |
-|-------|------------|
-| **403 Forbidden** | Verify `VYBE_API_KEY` in `.env` is correct and has access to the endpoint. If the key works locally but not on a server, the key may be IP-restricted — contact [Vybe support](https://vybenetwork.com) to allow your server IP. |
-| **Slow responses / timeouts** | The app uses a 60s timeout for Vybe requests. If the API is under load, you may see timeouts; the client retries up to 5 times with 2s delay. Check [Vybe status](https://vybenetwork.com) or try again later. |
-| **Missing env vars** | Ensure you copied `.env.example` to `.env` and set `VYBE_API_KEY`. Run `npm run typecheck` to catch TypeScript errors; run `npm start` and check the console for "VYBE_API_KEY loaded". |
+
+| Issue                         | What to do                                                                                                                                                                                                                       |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **403 Forbidden**             | Verify `VYBE_API_KEY` in `.env` is correct and has access to the endpoint. If the key works locally but not on a server, the key may be IP-restricted — contact [Vybe support](https://vybenetwork.com) to allow your server IP. |
+| **Slow responses / timeouts** | The app uses a 60s timeout for Vybe requests. If the API is under load, you may see timeouts; the client retries up to 5 times with 2s delay. Check [Vybe status](https://vybenetwork.com) or try again later.                   |
+| **Missing env vars**          | Ensure you copied `.env.example` to `.env` and set `VYBE_API_KEY`. Run `npm run typecheck` to catch TypeScript errors; run `npm start` and check the console for "VYBE_API_KEY loaded".                                          |
+
 
 ## Support
 
 - **Telegram:** [Vybe community](https://t.me/vybenetwork)
 - **Support ticket:** [Submit a ticket via vybenetwork.xyz](https://vybenetwork.com)
+
