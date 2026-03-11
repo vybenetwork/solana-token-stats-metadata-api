@@ -70,7 +70,7 @@ This repo includes:
 - Trades endpoint (most recent 1000 trades)
 - A browser-based web app (GUI) to browse token stats, most recent 1000 trades, top traders (filtered by mint), and top holders in one view (mint, quote mint, program address, market address, and owner addresses link to Solscan in a new tab; links use a consistent blue style)
 
-### Vybe API docs for these endpoints
+---
 
 ### Solana API docs for these endpoints
 
@@ -85,6 +85,7 @@ This repo includes:
 - **Top traders (`GET /v4/wallets/top-traders`)**:
   - [https://docs.vybenetwork.com/reference/get_top_traders_v4](https://docs.vybenetwork.com/reference/get_top_traders_v4)
 
+---
 
 ## Why This Matters
 
