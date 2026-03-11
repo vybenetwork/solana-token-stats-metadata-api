@@ -72,25 +72,19 @@ This repo includes:
 
 ### Vybe API docs for these endpoints
 
-- **Token details (`GET /v4/tokens/{mintAddress}`)**:  
-  [https://docs.vybenetwork.com/reference/get_token_details_v4](https://docs.vybenetwork.com/reference/get_token_details_v4) and  
-  [Token details API docs](https://docs.vybenetwork.com/reference/get_token_details_v4)
+### Solana API docs for these endpoints
 
-- **Top holders (`GET /v4/tokens/{mintAddress}/top-holders`)**:  
-  [https://docs.vybenetwork.com/reference/get_top_holders_v4](https://docs.vybenetwork.com/reference/get_top_holders_v4) and  
-  [Top holders API docs](https://docs.vybenetwork.com/reference/get_top_holders_v4)
+- **Token details (`GET /v4/tokens/{mintAddress}`)**:
+  - [https://docs.vybenetwork.com/reference/get_token_details_v4](https://docs.vybenetwork.com/reference/get_token_details_v4)
+- **Top holders (`GET /v4/tokens/{mintAddress}/top-holders`)**:
+  - [https://docs.vybenetwork.com/reference/get_top_holders_v4](https://docs.vybenetwork.com/reference/get_top_holders_v4)
+- **Trades (**`GET /v4/trades`**)**:
+  - [https://docs.vybenetwork.com/reference/get_trade_data_program_v4](https://docs.vybenetwork.com/reference/get_trade_data_program_v4)
+- **Labeled programs (`GET /v4/programs/labeled-program-accounts`)**:
+  - [https://docs.vybenetwork.com/reference/get_known_program_accounts_v4](https://docs.vybenetwork.com/reference/get_known_program_accounts_v4)
+- **Top traders (`GET /v4/wallets/top-traders`)**:
+  - [https://docs.vybenetwork.com/reference/get_top_traders_v4](https://docs.vybenetwork.com/reference/get_top_traders_v4)
 
-- **Trades (`GET /v4/trades`)**:  
-  [https://docs.vybenetwork.com/reference/get_trade_data_program_v4](https://docs.vybenetwork.com/reference/get_trade_data_program_v4) and  
-  [Trades API docs](https://docs.vybenetwork.com/reference/get_trade_data_program_v4)
-
-- **Labeled programs (`GET /v4/programs/labeled-program-accounts`)**:  
-  [https://docs.vybenetwork.com/reference/get_known_program_accounts_v4](https://docs.vybenetwork.com/reference/get_known_program_accounts_v4) and  
-  [Labeled programs API docs](https://docs.vybenetwork.com/reference/get_known_program_accounts_v4)
-
-- **Top traders (`GET /v4/wallets/top-traders`)**:  
-  [https://docs.vybenetwork.com/reference/get_top_traders_v4](https://docs.vybenetwork.com/reference/get_top_traders_v4) and  
-  [Top traders API docs](https://docs.vybenetwork.com/reference/get_top_traders_v4)
 
 ## Why This Matters
 
