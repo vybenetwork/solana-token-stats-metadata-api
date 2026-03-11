@@ -1,8 +1,10 @@
 # Solana Token Stats & Metadata API
 
-This repository demonstrates how to use the Vybe Solana Token API to fetch token stats and metadata for any SPL token.
+This repository demonstrates how to use the Vybe Solana Token API to fetch comprehensive Solana token stats and metadata for any SPL token. It includes a production-ready Node.js backend and a modern frontend that showcase how to integrate Vybe’s endpoints for price, volume, market cap, holders, trades, programs, and token symbols.
 
-![Token metadata and stats](screenshots/token-metadata-spl-token2022-solana-api.png)
+Use this project as a reference implementation or starter kit for building Solana analytics dashboards, token explorers, and on-chain data products powered by Vybe’s high-performance Solana token data API.
+
+![Token Metadata SPL Token-2022 Solana API](screenshots/token-metadata-spl-token2022-solana-api.png)
 
 <p align="center">
   <img src="screenshots/top-traders-solana-api.png" alt="Top traders by realized PnL (30d)" width="260" style="min-width:260px;max-width:260px;margin-right:10px;" />
@@ -75,15 +77,15 @@ This repo includes:
 ### Solana API docs for these endpoints
 
 - **Token details (`GET /v4/tokens/{mintAddress}`)**:
-  - [https://docs.vybenetwork.com/reference/get_token_details_v4](https://docs.vybenetwork.com/reference/get_token_details_v4)
+  - [https://docs.vybenetwork.com/reference/get_token_details_v4](https://docs.vybenetwork.com/reference/get_token_details_v4?utm_source=github&utm_medium=repo&utm_campaign=solana-historical-trade-data-api)
 - **Top holders (`GET /v4/tokens/{mintAddress}/top-holders`)**:
-  - [https://docs.vybenetwork.com/reference/get_top_holders_v4](https://docs.vybenetwork.com/reference/get_top_holders_v4)
+  - [https://docs.vybenetwork.com/reference/get_top_holders_v4](https://docs.vybenetwork.com/reference/get_top_holders_v4?utm_source=github&utm_medium=repo&utm_campaign=solana-historical-trade-data-api)
 - **Trades (**`GET /v4/trades`**)**:
-  - [https://docs.vybenetwork.com/reference/get_trade_data_program_v4](https://docs.vybenetwork.com/reference/get_trade_data_program_v4)
+  - [https://docs.vybenetwork.com/reference/get_trade_data_program_v4](https://docs.vybenetwork.com/reference/get_trade_data_program_v4?utm_source=github&utm_medium=repo&utm_campaign=solana-historical-trade-data-api)
 - **Labeled programs (`GET /v4/programs/labeled-program-accounts`)**:
-  - [https://docs.vybenetwork.com/reference/get_known_program_accounts_v4](https://docs.vybenetwork.com/reference/get_known_program_accounts_v4)
+  - [https://docs.vybenetwork.com/reference/get_known_program_accounts_v4](https://docs.vybenetwork.com/reference/get_known_program_accounts_v4?utm_source=github&utm_medium=repo&utm_campaign=solana-historical-trade-data-api)
 - **Top traders (`GET /v4/wallets/top-traders`)**:
-  - [https://docs.vybenetwork.com/reference/get_top_traders_v4](https://docs.vybenetwork.com/reference/get_top_traders_v4)
+  - [https://docs.vybenetwork.com/reference/get_top_traders_v4](https://docs.vybenetwork.com/reference/get_top_traders_v4?utm_source=github&utm_medium=repo&utm_campaign=solana-historical-trade-data-api)
 
 ---
 
@@ -375,7 +377,7 @@ The app uses a **60-second timeout** for Vybe requests. If the Vybe API is slow,
 
 ### 1️⃣ Token Details (Stats & Metadata)
 
-**`GET /v4/tokens/{mintAddress}`** — [API docs](https://docs.vybenetwork.com/reference/get_token_details_v4)
+**`GET /v4/tokens/{mintAddress}`** — [API docs](https://docs.vybenetwork.com/reference/get_token_details_v4?utm_source=github&utm_medium=repo&utm_campaign=solana-historical-trade-data-api)
 
 Retrieve token stats, metadata, and metrics.
 
@@ -403,7 +405,7 @@ Response fields include:
 
 ### 2️⃣ Top Holders
 
-**`GET /v4/tokens/{mintAddress}/top-holders`** — [API docs](https://docs.vybenetwork.com/reference/get_top_holders_v4)
+**`GET /v4/tokens/{mintAddress}/top-holders`** — [API docs](https://docs.vybenetwork.com/reference/get_top_holders_v4?utm_source=github&utm_medium=repo&utm_campaign=solana-historical-trade-data-api)
 
 Returns the top 100 token holders sorted by highest percentage of supply (updated every 3 hours). Request uses `page=0`, `limit=100`, `sortByDesc=percentageOfSupplyHeld`. Fetched when loading a token; if the response is positive (e.g. token on Pump.fun or PumpSwap), the table is shown.
 
@@ -415,11 +417,11 @@ Returns the top 100 token holders sorted by highest percentage of supply (update
 | sortByAsc     | No       | e.g. `rank`, `valueUsd`, `balance`, `percentageOfSupplyHeld` |
 | sortByDesc    | No       | Same options |
 
-- [Top Holders (API reference)](https://docs.vybenetwork.com/reference/get_top_holders_v4)
+- [Top Holders (API reference)](https://docs.vybenetwork.com/reference/get_top_holders_v4?utm_source=github&utm_medium=repo&utm_campaign=solana-historical-trade-data-api)
 
 ### 3️⃣ Last 1000 Trades
 
-**`GET /v4/trades`** — [API docs](https://docs.vybenetwork.com/reference/get_trade_data_program_v4)
+**`GET /v4/trades`** — [API docs](https://docs.vybenetwork.com/reference/get_trade_data_program_v4?utm_source=github&utm_medium=repo&utm_campaign=solana-historical-trade-data-api)
 
 Returns the last 1000 trades for a base token. Used to build the **Last 1000 trades summary** (top 10 programs and top 10 quote tokens with symbols). The server proxies this as **`GET /api/trades?mintAddress=…&limit=1000&page=0&sortByDesc=blockTime`**.
 
@@ -434,11 +436,11 @@ Returns the last 1000 trades for a base token. Used to build the **Last 1000 tra
 
 **`GET /api/programs/labeled-program-account?programAddress=…`**
 
-Returns the labeled program for a single program address. The server proxies to Vybe `GET /v4/programs/labeled-program-accounts?programAddress=…` ([API docs](https://docs.vybenetwork.com/reference/get_known_program_accounts_v4)). The app calls this once per top-10 program that does not already have a label (well-known map used first); requests are queued with concurrency 2. Response shape: `{ programs?: [{ programAddress, name?, labels?: string[] }] }`.
+Returns the labeled program for a single program address. The server proxies to Vybe `GET /v4/programs/labeled-program-accounts?programAddress=…` ([API docs](https://docs.vybenetwork.com/reference/get_known_program_accounts_v4?utm_source=github&utm_medium=repo&utm_campaign=solana-historical-trade-data-api)). The app calls this once per top-10 program that does not already have a label (well-known map used first); requests are queued with concurrency 2. Response shape: `{ programs?: [{ programAddress, name?, labels?: string[] }] }`.
 
 ### 5️⃣ Top Traders
 
-**`GET /v4/wallets/top-traders`** (proxied as **`GET /api/wallets/top-traders`**) — [API docs](https://docs.vybenetwork.com/reference/get_top_traders_v4)
+**`GET /v4/wallets/top-traders`** (proxied as **`GET /api/wallets/top-traders`**) — [API docs](https://docs.vybenetwork.com/reference/get_top_traders_v4?utm_source=github&utm_medium=repo&utm_campaign=solana-historical-trade-data-api)
 
 Returns the top 100 wallets by realized PnL for a token over 30 days. Used in the **Top traders (by realized PnL, 30d)** section.
 
@@ -449,7 +451,7 @@ Returns the top 100 wallets by realized PnL for a token over 30 days. Used in th
 | sortByDesc  | No       | Default `realizedPnlUsd` |
 | limit       | No       | Default/max 100 |
 
-- [Top Traders (API reference)](https://docs.vybenetwork.com/reference/get_top_traders_v4)
+- [Top Traders (API reference)](https://docs.vybenetwork.com/reference/get_top_traders_v4?utm_source=github&utm_medium=repo&utm_campaign=solana-historical-trade-data-api)
 
 ### 6️⃣ Token symbol (server)
 
