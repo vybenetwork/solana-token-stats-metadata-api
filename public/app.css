@@ -284,6 +284,7 @@ header h1 {
   display: inline-block;
   width: 1rem;
   height: 1rem;
+  margin-left: 12px;
   border: 2px solid #3f3f46;
   border-top-color: #3b82f6;
   border-radius: 50%;
