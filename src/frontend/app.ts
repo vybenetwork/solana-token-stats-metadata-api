@@ -150,6 +150,12 @@ function truncateProgramAddress(addr: string | undefined): string {
   return addr.slice(0, 5) + '....' + addr.slice(-6);
 }
 
+function truncateSymbolDisplay(sym: string): string {
+  if (!sym) return sym;
+  const s = sym.toUpperCase();
+  return s.length > 5 ? s.slice(0, 5) : s;
+}
+
 function hasRealLabel(programLabels: Record<string, string>, addr: string): boolean {
   const label = programLabels[addr];
   return !!(label && label !== addr);
@@ -275,6 +281,8 @@ function formatBalance(n: number | string | null | undefined, symbol: string): s
 }
 
 const loadingIndicator = document.getElementById('loadingIndicator') as HTMLElement;
+const DEMO_MINT = 'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263';
+const DEMO_SNAPSHOT_URL = 'bonk-snapshot.json';
 
 const MAX_FETCH_RETRIES = 5;
 const FETCH_RETRY_DELAY_MS = 2000;
@@ -318,7 +326,11 @@ function otherMint(t: TradeRow, mintBeingAnalysed: string): string {
 async function processTradesAndRender(
   trades: TradeRow[],
   mint: string,
-  tokenData: TokenData | null
+  tokenData: TokenData | null,
+  precomputed?: {
+    programLabels?: Record<string, string>;
+    quoteSymbols?: Record<string, string>;
+  }
 ): Promise<void> {
   const quoteCountByMint: Record<string, number> = {};
   const programMarketCount: Record<string, Record<string, number>> = {};
@@ -353,43 +365,48 @@ async function processTradesAndRender(
       return { marketAddress: addr, count, bestQuoteMint };
     });
   const sortedByCount = Object.entries(quoteCountByMint).sort((a, b) => b[1] - a[1]);
-  const needSymbolMints = sortedByCount
-    .slice(0, 20)
-    .map(([mintAddr]) => mintAddr)
-    .filter((mintAddr) => !HARDCODED_QUOTE_SYMBOLS[mintAddr]);
   const uniquePrograms = [...new Set(trades.map((t) => t.programAddress).filter(Boolean))] as string[];
   const top10Programs = uniquePrograms
     .sort((a, b) => (programTradeCount[b] ?? 0) - (programTradeCount[a] ?? 0))
     .slice(0, 10);
-  const needLabel = top10Programs.filter((addr) => !WELL_KNOWN_PROGRAMS[addr]);
-  const [labelsRes, symbolsRes] = await Promise.all([
-    needLabel.length > 0
-      ? fetchWithRetry('/api/programs/labeled-program-accounts', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ programAddresses: needLabel }),
-        })
-      : Promise.resolve({ ok: true, json: async () => ({ labels: {} }) } as Response),
-    needSymbolMints.length > 0
-      ? fetchWithRetry('/api/token-symbols', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mints: needSymbolMints }),
-        })
-      : Promise.resolve({ ok: true, json: async () => ({ symbols: {} }) } as Response),
-  ]);
   const programLabels: Record<string, string> = {};
   top10Programs.forEach((addr) => {
     programLabels[addr] = WELL_KNOWN_PROGRAMS[addr] || addr;
   });
-  if (labelsRes.ok) {
-    const body = (await labelsRes.json()) as { labels?: Record<string, string> };
-    Object.assign(programLabels, body.labels || {});
-  }
   const quoteSymbols: Record<string, string> = { ...HARDCODED_QUOTE_SYMBOLS };
-  if (symbolsRes.ok) {
-    const body = (await symbolsRes.json()) as { symbols?: Record<string, string> };
-    Object.assign(quoteSymbols, body.symbols || {});
+  if (precomputed?.programLabels || precomputed?.quoteSymbols) {
+    if (precomputed.programLabels) Object.assign(programLabels, precomputed.programLabels);
+    if (precomputed.quoteSymbols) Object.assign(quoteSymbols, precomputed.quoteSymbols);
+  } else {
+    const needSymbolMints = sortedByCount
+      .slice(0, 20)
+      .map(([mintAddr]) => mintAddr)
+      .filter((mintAddr) => !HARDCODED_QUOTE_SYMBOLS[mintAddr]);
+    const needLabel = top10Programs.filter((addr) => !WELL_KNOWN_PROGRAMS[addr]);
+    const [labelsRes, symbolsRes] = await Promise.all([
+      needLabel.length > 0
+        ? fetchWithRetry('/api/programs/labeled-program-accounts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ programAddresses: needLabel }),
+          })
+        : Promise.resolve({ ok: true, json: async () => ({ labels: {} }) } as Response),
+      needSymbolMints.length > 0
+        ? fetchWithRetry('/api/token-symbols', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ mints: needSymbolMints }),
+          })
+        : Promise.resolve({ ok: true, json: async () => ({ symbols: {} }) } as Response),
+    ]);
+    if (labelsRes.ok) {
+      const body = (await labelsRes.json()) as { labels?: Record<string, string> };
+      Object.assign(programLabels, body.labels || {});
+    }
+    if (symbolsRes.ok) {
+      const body = (await symbolsRes.json()) as { symbols?: Record<string, string> };
+      Object.assign(quoteSymbols, body.symbols || {});
+    }
   }
   const displayList: { mint: string; count: number }[] = [];
   for (const [mintAddr, count] of sortedByCount) {
@@ -826,7 +843,9 @@ function renderTradesSummary(opts: {
       const markets = programTopMarkets[addr] || [];
       const top = markets.find((m) => !m.bestQuoteMint || hasQuoteSymbol(m.bestQuoteMint, quoteSymbols))!;
       const marketLink = `<a href="${SOLSCAN_ACCOUNT}${encodeURIComponent(top.marketAddress)}" target="_blank" rel="noopener noreferrer" class="mono" title="${top.marketAddress}">${truncateAddress(top.marketAddress)}</a>`;
-      const pairDisplay = top.bestQuoteMint ? `${baseSymbol} / ${quoteDisplay(top.bestQuoteMint, quoteSymbols)}` : '';
+      const baseSymDisplay = truncateSymbolDisplay(baseSymbol);
+      const quoteSymDisplay = top.bestQuoteMint ? truncateSymbolDisplay(quoteDisplay(top.bestQuoteMint, quoteSymbols)) : '';
+      const pairDisplay = top.bestQuoteMint ? `${baseSymDisplay} / ${quoteSymDisplay}` : '';
       const topMarketCell = pairDisplay ? `${marketLink} (${pairDisplay})` : marketLink;
       return `<tr><td>${labelCell}</td><td>${link}</td><td>${topMarketCell}</td><td>${count}</td></tr>`;
     })
@@ -834,13 +853,16 @@ function renderTradesSummary(opts: {
   const quoteRows = top10QuoteMints
     .map(({ mint, count }) => {
       const mintLink = `<a href="${VYBE_TOKEN}${encodeURIComponent(mint)}" target="_blank" rel="noopener noreferrer" class="mono" title="${mint}">${truncateAddress(mint)}</a>`;
-      return `<tr><td>${quoteDisplay(mint, quoteSymbols)}</td><td>${mintLink}</td><td>${count}</td></tr>`;
+      const sym = truncateSymbolDisplay(quoteDisplay(mint, quoteSymbols));
+      return `<tr><td>${sym}</td><td>${mintLink}</td><td>${count}</td></tr>`;
     })
     .join('');
   const marketRows = top10Markets
     .map(({ marketAddress, count, bestQuoteMint }) => {
       const marketLink = `<a href="${SOLSCAN_ACCOUNT}${encodeURIComponent(marketAddress)}" target="_blank" rel="noopener noreferrer" class="mono" title="${marketAddress}">${truncateAddress(marketAddress)}</a>`;
-      const pairDisplay = bestQuoteMint ? `${baseSymbol} / ${quoteDisplay(bestQuoteMint, quoteSymbols)}` : '—';
+      const baseSymDisplay = truncateSymbolDisplay(baseSymbol);
+      const quoteSymDisplay = bestQuoteMint ? truncateSymbolDisplay(quoteDisplay(bestQuoteMint, quoteSymbols)) : '';
+      const pairDisplay = bestQuoteMint ? `${baseSymDisplay} / ${quoteSymDisplay}` : '—';
       return `<tr><td>${marketLink}</td><td>${pairDisplay}</td><td>${count}</td></tr>`;
     })
     .join('');
@@ -930,7 +952,8 @@ function renderHolders(data: { data?: HolderRow[] }): void {
           const ownerLink = h.ownerAddress
             ? `<a href="${VYBE_WALLET}${encodeURIComponent(h.ownerAddress)}" target="_blank" rel="noopener noreferrer" class="mono" title="${h.ownerAddress}">${ownerDisplay}</a>`
             : `<span class="mono">${ownerDisplay}</span>`;
-          const sym = tokenSymbol?.textContent ? tokenSymbol.textContent.trim().toUpperCase() : '';
+          const rawSym = tokenSymbol?.textContent ? tokenSymbol.textContent.trim().toUpperCase() : '';
+          const sym = rawSym ? truncateSymbolDisplay(rawSym) : '';
           const balance =
             h.balance != null && h.balance !== ''
               ? formatBalance(Number(h.balance), sym)
@@ -1069,3 +1092,55 @@ if (tradesFetchModePaged && tradesFetchSwitchLabel) {
 
 applyTradesFetchUI();
 renderEmptyState();
+
+void (async () => {
+  try {
+    if (!mintInput.value.trim()) {
+      mintInput.value = DEMO_MINT;
+    }
+    const res = await fetch(DEMO_SNAPSHOT_URL);
+    if (!res.ok) return;
+    const snapshot = (await res.json()) as {
+      mintAddress?: string;
+      token?: TokenData;
+      trades?: TradeRow[];
+      topTraders?: { data?: TopTraderRow[] };
+      topHolders?: { data?: HolderRow[] };
+      programLabels?: Record<string, string>;
+      quoteSymbols?: Record<string, string>;
+    };
+    const mint = (mintInput.value || snapshot.mintAddress || DEMO_MINT).trim();
+    const token = snapshot.token ?? null;
+    if (token) {
+      renderToken(token);
+      hideSectionError(tokenSectionError);
+    }
+    const trades = snapshot.trades ?? [];
+    if (trades.length > 0) {
+      await processTradesAndRender(trades, mint, token, {
+        programLabels: snapshot.programLabels,
+        quoteSymbols: snapshot.quoteSymbols,
+      });
+      hideSectionError(tradesSummaryError);
+    }
+    if (snapshot.topTraders) {
+      renderTopTraders(snapshot.topTraders);
+      hideSectionError(topTradersError);
+    }
+    if (snapshot.topHolders) {
+      renderHolders(snapshot.topHolders);
+      hideSectionError(holdersError);
+    }
+  } catch {
+    // Snapshot is best-effort; ignore failures.
+  } finally {
+    tokenSectionLoading.hidden = true;
+    tokenSectionLoading.setAttribute('aria-hidden', 'true');
+    tradesSummaryLoading.hidden = true;
+    tradesSummaryLoading.setAttribute('aria-hidden', 'true');
+    topTradersLoading.hidden = true;
+    topTradersLoading.setAttribute('aria-hidden', 'true');
+    holdersLoading.hidden = true;
+    holdersLoading.setAttribute('aria-hidden', 'true');
+  }
+})();

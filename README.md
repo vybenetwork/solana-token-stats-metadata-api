@@ -30,7 +30,7 @@ cp .env.example .env
 npm start
 ```
 
-Then open **http://localhost:3000**, enter a token mint, and click **Load Token Metadata & Top Holders**.
+Then open **http://localhost:3000**, explore the preloaded BONK analytics, or enter a token mint and click **Load token analytics**.
 
 ## Environment Variables
 
