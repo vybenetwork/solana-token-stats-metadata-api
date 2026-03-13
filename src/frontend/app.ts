@@ -282,7 +282,7 @@ function formatBalance(n: number | string | null | undefined, symbol: string): s
 
 const loadingIndicator = document.getElementById('loadingIndicator') as HTMLElement;
 const DEMO_MINT = 'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263';
-const DEMO_SNAPSHOT_URL = 'bonk-snapshot.json';
+const DEMO_SNAPSHOT_URL = '/bonk-snapshot.json';
 
 const MAX_FETCH_RETRIES = 5;
 const FETCH_RETRY_DELAY_MS = 2000;
@@ -562,30 +562,36 @@ fetchAllBtn.addEventListener('click', async () => {
       topTradersLoading.setAttribute('aria-hidden', 'true');
     });
 
-  const holdersPromise = fetchWithRetry(holdersUrl)
-    .then(async (holdersRes) => {
+  const holdersPromise = (async () => {
+    try {
+      // Ensure the token details (and symbol) have been loaded before we
+      // render holders so the balance column can show the correct symbol.
+      await tokenPromise;
+
+      const holdersRes = await fetchWithRetry(holdersUrl);
       hideSectionError(holdersError);
       if (!holdersRes.ok) {
         const errData = (await holdersRes.json?.().catch(() => ({}))) ?? {};
         showSectionError(holdersError, holdersRes, errData);
       }
       const holdersData = holdersRes.ok
-        ? (await holdersRes.json().catch(() => ({ data: [] }))) as { data?: HolderRow[] }
+        ? ((await holdersRes.json().catch(() => ({ data: [] }))) as { data?: HolderRow[] })
         : { data: [] };
       if (holdersRes.ok && holdersData.data?.length) {
         renderHolders(holdersData);
         hideSectionError(holdersError);
       } else {
         holdersMeta.textContent = '—';
-        holdersBody.innerHTML = '<tr><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>';
+        holdersBody.innerHTML =
+          '<tr><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>';
       }
+    } catch {
+      // ignore; section error/loader handled below
+    } finally {
       holdersLoading.hidden = true;
       holdersLoading.setAttribute('aria-hidden', 'true');
-    })
-    .catch(() => {
-      holdersLoading.hidden = true;
-      holdersLoading.setAttribute('aria-hidden', 'true');
-    });
+    }
+  })();
 
   await tokenPromise;
 
