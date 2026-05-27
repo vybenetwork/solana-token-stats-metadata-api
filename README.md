@@ -18,7 +18,7 @@ Use this project as a reference implementation or starter kit for building Solan
 
 **[Try the LIVE demo →](https://solana-token-stats-metadata-api.vybenetwork.com)**  
 
-**[Get your free Vybe API key →](https://vybenetwork.com/pricing)**  
+**[Get your free Vybe API key →](https://vybe.fyi/api-pricing)**  
 
 **[Vybe SPL & Token-2022 token details docs →](https://docs.vybenetwork.com/docs/token-details-spl-token-2022)**
 
@@ -53,7 +53,7 @@ Then open **http://localhost:3000**, explore the preloaded BONK analytics, or en
 | `PORT` | No | Server port | `3000` |
 | `TUNNEL` | No | Set to `1` to run with Cloudflare Tunnel | `1` |
 
-Get your API key at [vybenetwork.com/pricing](https://vybenetwork.com/pricing).
+Get your API key at [vybenetwork.com/pricing](https://vybe.fyi/api-pricing).
 
 ---
 
@@ -270,7 +270,7 @@ When metadata is available from both Pump.fun and PumpSwap, PumpSwap’s result 
 
 You’ll need a Vybe API key to run this demo.
 
-- [Get your free Vybe API key](https://vybenetwork.com/pricing)
+- [Get your free Vybe API key](https://vybe.fyi/api-pricing)
 - [View Vybe API documentation](https://docs.vybenetwork.com/docs/token-details-spl-token-2022)
 
 ## Project Structure
