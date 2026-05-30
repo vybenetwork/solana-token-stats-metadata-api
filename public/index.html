@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Solana Token Stats &amp; Metadata API Demo</title>
-  <meta name="description" content="Solana token stats and metadata API demo: top traders, top holders, whales, stats for Token-2022 &amp; SPL—analytics dashboards, explorers, on-chain data." />
+  <meta name="description" content="Solana Token Stats and Metadata API demo: fetch, display, and export Token Stats for SPL &amp; Token-2022 tokens—top holders, top traders, trade history and on-chain analytics kit." />
   <meta name="keywords" content="Solana token stats, token metadata API, Vybe API, SPL token, Token-2022, top holders, top traders, trade history, market cap, token analytics" />
   <meta name="author" content="Vybe Network" />
   <meta name="robots" content="index, follow" />
@@ -15,15 +15,22 @@
   <meta property="og:locale" content="en_US" />
   <meta property="og:url" content="https://solana-token-stats-metadata-api.vybenetwork.com/" />
   <meta property="og:title" content="Solana Token Stats &amp; Metadata API Demo" />
-  <meta property="og:description" content="Solana token stats and metadata API demo: top traders, top holders, whales, stats for Token-2022 &amp; SPL—analytics dashboards, explorers, on-chain data." />
+  <meta property="og:description" content="Solana Token Stats and Metadata API demo: fetch, display, and export Token Stats for SPL &amp; Token-2022 tokens—top holders, top traders, trade history and on-chain analytics kit." />
+  <meta property="og:image" content="https://solana-token-stats-metadata-api.vybenetwork.com/solana-token-stats-metadata-api.jpg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:type" content="image/jpeg" />
+  <meta property="og:image:alt" content="Solana Token Stats and Metadata API demo powered by Vybe API" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:site" content="@Vybe_Network" />
   <meta name="twitter:creator" content="@Vybe_Network" />
   <meta name="twitter:title" content="Solana Token Stats &amp; Metadata API Demo" />
-  <meta name="twitter:description" content="Solana token stats and metadata API demo: top traders, top holders, whales, stats for Token-2022 &amp; SPL—analytics dashboards, explorers, on-chain data." />
+  <meta name="twitter:description" content="Solana Token Stats and Metadata API demo: fetch, display, and export Token Stats for SPL &amp; Token-2022 tokens—top holders, top traders, trade history and on-chain analytics kit." />
+  <meta name="twitter:image" content="https://solana-token-stats-metadata-api.vybenetwork.com/solana-token-stats-metadata-api.jpg" />
+  <meta name="twitter:image:alt" content="Solana Token Stats and Metadata API demo powered by Vybe API" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <link rel="shortcut icon" href="/favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="app.css?v=11" />
+    <link rel="stylesheet" href="app.css?v=22" />
 </head>
 <body>
   <div class="container">
@@ -37,7 +44,7 @@
           Solana <span class="page-masthead__title-accent">Token Stats</span> &amp; Metadata
         </h1>
         <p class="page-masthead__description">
-          Solana token stats and metadata API demo: top traders, top holders, whales, stats for Token-2022 &amp; SPL—analytics dashboards, explorers, on-chain data.
+          Solana Token Stats and Metadata API demo: fetch, display, and export Token Stats for SPL &amp; Token-2022 tokens—top holders, top traders, trade history and on-chain analytics kit.
         </p>
       </div>
       <nav class="page-masthead__nav" aria-label="Documentation and community links">
@@ -88,31 +95,19 @@
       </nav>
     </header>
 
-    <section class="section-card section-card--inputs inputs panel">
-      <div class="field">
-        <label for="mint">Token mint address</label>
-        <input type="text" id="mint" placeholder="e.g. DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263" value="DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263" />
-      </div>
-      <div class="actions">
-        <button type="button" id="fetchAll">Load token analytics</button>
-        <div class="loading" id="loadingIndicator" hidden aria-hidden="true">
-          <span class="loading-spinner"></span>
-          <span class="loading-text">Loading…</span>
-        </div>
-      </div>
-    </section>
-
     <section class="section-card section-card--token token-section panel" id="tokenSection">
-      <div class="section-header">
-        <span class="section-header__marker" aria-hidden="true"></span>
-        <h2 class="section-header__title">Token stats &amp; metadata</h2>
-        <div class="section-loading" id="tokenSectionLoading" hidden aria-hidden="true">
-          <span class="loading-spinner"></span>
-          <span class="loading-text">Loading…</span>
+      <div class="section-header section-header--token">
+        <div class="section-header-left">
+          <span class="section-header__marker" aria-hidden="true"></span>
+          <h2 class="section-header__title token-stats-group-title">Token stats &amp; metadata</h2>
+          <div class="section-loading" id="tokenSectionLoading" hidden aria-hidden="true">
+            <span class="loading-spinner"></span>
+            <span class="loading-text">Loading…</span>
+          </div>
+          <span class="section-error" id="tokenSectionError" hidden aria-hidden="true"></span>
         </div>
-        <span class="section-error" id="tokenSectionError" hidden aria-hidden="true"></span>
       </div>
-      <div class="token-section-content" id="tokenSectionContent">
+      <div class="token-section-intro">
         <div class="token-header">
           <img id="tokenLogo" alt="" class="token-logo" style="display:none" />
           <div>
@@ -120,6 +115,21 @@
             <span id="tokenName" class="name">—</span>
           </div>
         </div>
+        <div class="token-section-toolbar inputs">
+          <div class="field field--mint">
+            <label for="mint">Token mint address</label>
+            <div class="token-mint-control-row">
+              <input type="text" id="mint" placeholder="e.g. DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263" value="DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263" />
+              <button type="button" id="fetchAll">Load token analytics</button>
+              <div class="loading" id="loadingIndicator" hidden aria-hidden="true">
+                <span class="loading-spinner"></span>
+                <span class="loading-text">Loading…</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="token-section-content" id="tokenSectionContent">
         <div class="token-stats-groups" id="tokenStats"></div>
       </div>
     </section>
