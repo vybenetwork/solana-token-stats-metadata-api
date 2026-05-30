@@ -77,8 +77,8 @@ body {
 }
 
 .page-masthead__visual {
-  flex: 0 1 180px;
-  max-width: 180px;
+  flex: 0 1 150px;
+  max-width: 150px;
   min-width: 0;
   overflow: hidden;
 }
@@ -94,7 +94,7 @@ body {
 @media (max-width: 900px) {
   .page-masthead__visual {
     flex: 0 1 auto;
-    max-width: 180px;
+    max-width: 150px;
   }
 }
 
