@@ -355,9 +355,8 @@ body {
 
 .section-card .section-header {
   gap: 0.5rem 0.75rem;
-  padding-bottom: 0.65rem;
-  margin-bottom: 0.15rem;
-  border-bottom: 1px solid rgba(63, 63, 70, 0.4);
+  padding-bottom: 0.55rem;
+  margin-bottom: 0;
 }
 
 .section-header__marker {
