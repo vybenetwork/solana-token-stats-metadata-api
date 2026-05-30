@@ -3,17 +3,92 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Solana Token Stats & Metadata</title>
-  <link rel="stylesheet" href="app.css?v=2" />
+  <title>Solana Token Stats &amp; Metadata API Demo</title>
+  <meta name="description" content="Solana token stats and metadata API demo: top traders, top holders, whales, stats for Token-2022 &amp; SPL—analytics dashboards, explorers, on-chain data." />
+  <meta name="keywords" content="Solana token stats, token metadata API, Vybe API, SPL token, Token-2022, top holders, top traders, trade history, market cap, token analytics" />
+  <meta name="author" content="Vybe Network" />
+  <meta name="robots" content="index, follow" />
+  <meta name="theme-color" content="#0f0f12" />
+  <link rel="canonical" href="https://solana-token-stats-metadata-api.vybenetwork.com/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Vybe Network" />
+  <meta property="og:locale" content="en_US" />
+  <meta property="og:url" content="https://solana-token-stats-metadata-api.vybenetwork.com/" />
+  <meta property="og:title" content="Solana Token Stats &amp; Metadata API Demo" />
+  <meta property="og:description" content="Solana token stats and metadata API demo: top traders, top holders, whales, stats for Token-2022 &amp; SPL—analytics dashboards, explorers, on-chain data." />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:site" content="@Vybe_Network" />
+  <meta name="twitter:creator" content="@Vybe_Network" />
+  <meta name="twitter:title" content="Solana Token Stats &amp; Metadata API Demo" />
+  <meta name="twitter:description" content="Solana token stats and metadata API demo: top traders, top holders, whales, stats for Token-2022 &amp; SPL—analytics dashboards, explorers, on-chain data." />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="shortcut icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="app.css?v=11" />
 </head>
 <body>
   <div class="container">
-    <header>
-      <h1>Token Stats & Metadata</h1>
-      <p class="subtitle">Solana token details and top holders via Vybe API</p>
+    <header class="page-masthead" aria-label="About and resources">
+      <div class="page-masthead__title-block">
+        <div class="page-masthead__eyebrow">
+          <span class="page-masthead__logo">Vybe</span>
+          <span class="page-masthead__pill">Token API</span>
+        </div>
+        <h1 class="page-masthead__title">
+          Solana <span class="page-masthead__title-accent">Token Stats</span> &amp; Metadata
+        </h1>
+        <p class="page-masthead__description">
+          Solana token stats and metadata API demo: top traders, top holders, whales, stats for Token-2022 &amp; SPL—analytics dashboards, explorers, on-chain data.
+        </p>
+      </div>
+      <nav class="page-masthead__nav" aria-label="Documentation and community links">
+        <div class="page-masthead__nav-row page-masthead__nav-row--primary">
+          <div class="page-masthead__nav-cluster">
+          <div class="page-masthead__group page-masthead__group--repo">
+            <span class="page-masthead__label">Repository</span>
+            <div class="page-masthead__btns">
+              <a class="page-masthead__btn page-masthead__btn--github" href="https://github.com/vybenetwork/solana-token-stats-metadata-api" target="_blank" rel="noopener noreferrer">
+                <span class="page-masthead__btn-icon page-masthead__btn-icon--github" aria-hidden="true"></span>
+                Clone this repo
+              </a>
+            </div>
+          </div>
+          <div class="page-masthead__group">
+            <span class="page-masthead__label">Guides</span>
+            <div class="page-masthead__btns">
+              <a class="page-masthead__btn page-masthead__btn--docs" href="https://docs.vybenetwork.com/docs/token-details-spl-token-2022#/" target="_blank" rel="noopener noreferrer">
+                <span class="page-masthead__btn-icon page-masthead__btn-icon--docs" aria-hidden="true"></span>
+                <span class="page-masthead__btn-text"><span class="page-masthead__btn-prefix">Docs:</span> Token Details Guide</span>
+              </a>
+            </div>
+          </div>
+          <div class="page-masthead__group page-masthead__group--endpoint">
+            <span class="page-masthead__label">Endpoint</span>
+            <div class="page-masthead__btns">
+              <a class="page-masthead__btn page-masthead__btn--api" href="https://docs.vybenetwork.com/reference/get_trade_data_program_v4" target="_blank" rel="noopener noreferrer">
+                <span class="page-masthead__btn-icon page-masthead__btn-icon--endpoint" aria-hidden="true"></span>
+                <span class="page-masthead__btn-text"><span class="page-masthead__btn-prefix">Docs:</span> Token Trade History API</span>
+              </a>
+            </div>
+          </div>
+          </div>
+          <div class="page-masthead__group page-masthead__group--community">
+            <span class="page-masthead__label">Community</span>
+            <div class="page-masthead__btns">
+              <a class="page-masthead__btn page-masthead__btn--social" href="https://t.me/VybeNetwork_Official" target="_blank" rel="noopener noreferrer">
+                <span class="page-masthead__btn-icon page-masthead__btn-icon--telegram" aria-hidden="true"></span>
+                Telegram Support
+              </a>
+              <a class="page-masthead__btn page-masthead__btn--social" href="https://x.com/Vybe_Network" target="_blank" rel="noopener noreferrer">
+                <span class="page-masthead__btn-icon page-masthead__btn-icon--x" aria-hidden="true"></span>
+                Follow Us on X
+              </a>
+            </div>
+          </div>
+        </div>
+      </nav>
     </header>
 
-    <section class="inputs">
+    <section class="section-card section-card--inputs inputs panel">
       <div class="field">
         <label for="mint">Token mint address</label>
         <input type="text" id="mint" placeholder="e.g. DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263" value="DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263" />
@@ -27,9 +102,10 @@
       </div>
     </section>
 
-    <section class="token-section panel" id="tokenSection">
+    <section class="section-card section-card--token token-section panel" id="tokenSection">
       <div class="section-header">
-        <h2>Token stats & metadata</h2>
+        <span class="section-header__marker" aria-hidden="true"></span>
+        <h2 class="section-header__title">Token stats &amp; metadata</h2>
         <div class="section-loading" id="tokenSectionLoading" hidden aria-hidden="true">
           <span class="loading-spinner"></span>
           <span class="loading-text">Loading…</span>
@@ -48,10 +124,11 @@
       </div>
     </section>
 
-    <section class="trades-summary-section panel" id="tradesSummarySection">
+    <section class="section-card section-card--trades trades-summary-section panel" id="tradesSummarySection">
       <div class="section-header section-header--trades">
         <div class="section-header-left">
-          <h2>Last 1000 trades summary</h2>
+          <span class="section-header__marker" aria-hidden="true"></span>
+          <h2 class="section-header__title">Last 1000 trades summary</h2>
           <div class="section-loading" id="tradesSummaryLoading" hidden aria-hidden="true">
             <span class="loading-spinner"></span>
             <span class="loading-text" id="tradesSummaryLoadingText">Loading… (0%)</span>
@@ -78,9 +155,10 @@
       </div>
     </section>
 
-    <section class="top-traders-section panel" id="topTradersSection">
+    <section class="section-card section-card--traders top-traders-section panel" id="topTradersSection">
       <div class="section-header">
-        <h2>Top traders (by realized PnL, 30d)</h2>
+        <span class="section-header__marker" aria-hidden="true"></span>
+        <h2 class="section-header__title">Top traders (by realized PnL, 30d)</h2>
         <div class="section-loading" id="topTradersLoading" hidden aria-hidden="true">
           <span class="loading-spinner"></span>
           <span class="loading-text">Loading…</span>
@@ -107,9 +185,10 @@
       </div>
     </section>
 
-    <section class="holders-section panel" id="holdersSection">
+    <section class="section-card section-card--holders holders-section panel" id="holdersSection">
       <div class="section-header">
-        <h2>Top 100 holders (by % supply)</h2>
+        <span class="section-header__marker" aria-hidden="true"></span>
+        <h2 class="section-header__title">Top 100 holders (by % supply)</h2>
         <div class="section-loading" id="holdersLoading" hidden aria-hidden="true">
           <span class="loading-spinner"></span>
           <span class="loading-text">Loading…</span>
