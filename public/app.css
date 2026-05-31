@@ -975,12 +975,14 @@ section.inputs {
 }
 
 .trades-fetch-lock {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 2rem;
   height: 1.85rem;
   padding: 0;
+  overflow: hidden;
   border: 1px solid #3f3f46;
   border-radius: 6px;
   background: #18181b;
@@ -1022,7 +1024,7 @@ section.inputs {
 }
 
 .trades-fetch-lock[aria-pressed="true"]:not(.trades-fetch-lock--no-hover):hover .trades-fetch-lock-icon--locked {
-  display: none;
+  display: none !important;
 }
 
 .trades-fetch-lock[aria-pressed="true"]:not(.trades-fetch-lock--no-hover):hover .trades-fetch-lock-icon--unlocked {
@@ -1042,7 +1044,13 @@ section.inputs {
 }
 
 .trades-fetch-lock[aria-pressed="true"] .trades-fetch-lock-icon--locked {
-  display: block !important;
+  display: block;
+}
+
+.trades-fetch-lock-icon {
+  position: absolute;
+  inset: 0;
+  margin: auto;
 }
 
 .trades-fetch-switch {
