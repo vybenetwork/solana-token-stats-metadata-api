@@ -1036,7 +1036,7 @@ function renderToken(t: TokenData): void {
   const sym = (t.symbol || '').toUpperCase();
   const dashTxt = escapeHtmlText('—');
   const mintLink = mintTrim
-    ? `<a href="${VYBE_TOKEN}${encodeURIComponent(mintTrim)}" target="_blank" rel="noopener noreferrer" class="mono" title="${escapeHtmlAttr(mintTrim)}">${truncateMintMiddle(mintTrim)}</a>`
+    ? `<a href="${VYBE_TOKEN}${encodeURIComponent(mintTrim)}" target="_blank" rel="noopener" class="mono" title="${escapeHtmlAttr(mintTrim)}">${truncateMintMiddle(mintTrim)}</a>`
     : '';
   const decVal = t.decimal ?? t.decimals;
   const overview: TokenStatSectionSpec = {
@@ -1184,10 +1184,10 @@ function renderTradesSummary(opts: {
     .map((addr) => {
       const labelCell = hasRealLabel(programLabels, addr) ? programLabels[addr] : '—';
       const count = programTradeCount[addr] ?? 0;
-      const link = `<a href="${SOLSCAN_ACCOUNT}${encodeURIComponent(addr)}" target="_blank" rel="noopener noreferrer" class="mono" title="${addr}">${truncateProgramAddress(addr)}</a>`;
+      const link = `<a href="${SOLSCAN_ACCOUNT}${encodeURIComponent(addr)}" target="_blank" rel="noopener" class="mono" title="${addr}">${truncateProgramAddress(addr)}</a>`;
       const markets = programTopMarkets[addr] || [];
       const top = markets.find((m) => !m.bestQuoteMint || hasQuoteSymbol(m.bestQuoteMint, quoteSymbols))!;
-      const marketLink = `<a href="${SOLSCAN_ACCOUNT}${encodeURIComponent(top.marketAddress)}" target="_blank" rel="noopener noreferrer" class="mono" title="${top.marketAddress}">${truncateAddress(top.marketAddress)}</a>`;
+      const marketLink = `<a href="${SOLSCAN_ACCOUNT}${encodeURIComponent(top.marketAddress)}" target="_blank" rel="noopener" class="mono" title="${top.marketAddress}">${truncateAddress(top.marketAddress)}</a>`;
       const baseSymDisplay = truncateSymbolDisplay(baseSymbol);
       const quoteSymDisplay = top.bestQuoteMint ? truncateSymbolDisplay(quoteDisplay(top.bestQuoteMint, quoteSymbols)) : '';
       const pairDisplay = top.bestQuoteMint ? `${baseSymDisplay} / ${quoteSymDisplay}` : '';
@@ -1197,14 +1197,14 @@ function renderTradesSummary(opts: {
     .join('');
   const quoteRows = top10QuoteMints
     .map(({ mint, count }) => {
-      const mintLink = `<a href="${VYBE_TOKEN}${encodeURIComponent(mint)}" target="_blank" rel="noopener noreferrer" class="mono" title="${mint}">${truncateAddress(mint)}</a>`;
+      const mintLink = `<a href="${VYBE_TOKEN}${encodeURIComponent(mint)}" target="_blank" rel="noopener" class="mono" title="${mint}">${truncateAddress(mint)}</a>`;
       const sym = truncateSymbolDisplay(quoteDisplay(mint, quoteSymbols));
       return `<tr><td>${sym}</td><td>${mintLink}</td><td>${count}</td></tr>`;
     })
     .join('');
   const marketRows = top10Markets
     .map(({ marketAddress, count, bestQuoteMint }) => {
-      const marketLink = `<a href="${SOLSCAN_ACCOUNT}${encodeURIComponent(marketAddress)}" target="_blank" rel="noopener noreferrer" class="mono" title="${marketAddress}">${truncateAddress(marketAddress)}</a>`;
+      const marketLink = `<a href="${SOLSCAN_ACCOUNT}${encodeURIComponent(marketAddress)}" target="_blank" rel="noopener" class="mono" title="${marketAddress}">${truncateAddress(marketAddress)}</a>`;
       const baseSymDisplay = truncateSymbolDisplay(baseSymbol);
       const quoteSymDisplay = bestQuoteMint ? truncateSymbolDisplay(quoteDisplay(bestQuoteMint, quoteSymbols)) : '';
       const pairDisplay = bestQuoteMint ? `${baseSymDisplay} / ${quoteSymDisplay}` : '—';
@@ -1258,7 +1258,7 @@ function renderTopTraders(data: { data?: TopTraderRow[] }): void {
           const addr = row.accountAddress;
           const display = row.accountName || (addr ? truncateAddress(addr) : '—');
           const accountLink = addr
-            ? `<a href="${VYBE_WALLET}${encodeURIComponent(addr)}" target="_blank" rel="noopener noreferrer" class="mono" title="${addr}">${display}</a>`
+            ? `<a href="${VYBE_WALLET}${encodeURIComponent(addr)}" target="_blank" rel="noopener" class="mono" title="${addr}">${display}</a>`
             : `<span class="mono">${display}</span>`;
           const m = row.metrics || {};
           const realizedPnl = m.realizedPnlUsd != null ? formatUsdFull(Number(m.realizedPnlUsd)) : '—';
@@ -1295,7 +1295,7 @@ function renderHolders(data: { data?: HolderRow[] }): void {
           const rank = h.rank ?? '—';
           const ownerDisplay = h.ownerName || (h.ownerAddress ? truncateAddress(h.ownerAddress) : '—');
           const ownerLink = h.ownerAddress
-            ? `<a href="${VYBE_WALLET}${encodeURIComponent(h.ownerAddress)}" target="_blank" rel="noopener noreferrer" class="mono" title="${h.ownerAddress}">${ownerDisplay}</a>`
+            ? `<a href="${VYBE_WALLET}${encodeURIComponent(h.ownerAddress)}" target="_blank" rel="noopener" class="mono" title="${h.ownerAddress}">${ownerDisplay}</a>`
             : `<span class="mono">${ownerDisplay}</span>`;
           const rawSym = tokenSymbol?.textContent ? tokenSymbol.textContent.trim().toUpperCase() : '';
           const sym = rawSym ? truncateSymbolDisplay(rawSym) : '';
