@@ -19,7 +19,9 @@ body {
 }
 
 .container {
-  max-width: 1100px;
+  width: 100%;
+  min-width: 1200px;
+  max-width: 1200px;
   margin: 0 auto;
 }
 
@@ -38,7 +40,8 @@ body {
   background: linear-gradient(155deg, rgba(24, 26, 34, 0.98) 0%, rgba(12, 13, 18, 0.99) 50%, rgba(15, 18, 28, 0.98) 100%);
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 20px 48px rgba(0, 0, 0, 0.4);
   position: relative;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: visible;
 }
 
 .page-masthead::before {
@@ -202,7 +205,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
-  min-width: 0;
+  min-width: min-content;
 }
 
 .page-masthead__group--community {
@@ -596,7 +599,7 @@ body {
 
 .section-card {
   position: relative;
-  overflow: hidden;
+  overflow: visible;
   border-radius: 16px;
   border: 1px solid var(--vybe-border);
   padding: 1.35rem 1.3rem 1.2rem;
