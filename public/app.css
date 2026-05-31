@@ -1041,6 +1041,10 @@ section.inputs {
   display: none;
 }
 
+.trades-fetch-lock[aria-pressed="true"] .trades-fetch-lock-icon--locked {
+  display: block !important;
+}
+
 .trades-fetch-switch {
   display: inline-flex;
   cursor: pointer;
@@ -1157,7 +1161,7 @@ section.inputs {
   margin: 0;
 }
 
-button:not(.vybe-action-btn) {
+button:not(.vybe-action-btn):not(.trades-fetch-lock) {
   padding: 0.5rem 1rem;
   font-size: 0.9rem;
   font-weight: 500;
@@ -1168,11 +1172,11 @@ button:not(.vybe-action-btn) {
   cursor: pointer;
 }
 
-button:not(.vybe-action-btn):hover {
+button:not(.vybe-action-btn):not(.trades-fetch-lock):hover {
   background: #3f3f46;
 }
 
-button:not(.vybe-action-btn):active {
+button:not(.vybe-action-btn):not(.trades-fetch-lock):active {
   transform: scale(0.98);
 }
 
