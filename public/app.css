@@ -4,6 +4,7 @@
 
 html {
   overflow-x: auto;
+  min-width: 1200px;
 }
 
 body {
@@ -1994,6 +1995,8 @@ td .mono {
 
 /* Scrollbar: black track, grey thumb */
 html {
+  overflow-x: auto;
+  min-width: 1200px;
   scrollbar-color: #71717a #000000; /* thumb, track */
   scrollbar-width: thin;
 }
