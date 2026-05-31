@@ -469,6 +469,7 @@ const TRADES_TOTAL_PAGES = 10;
 const TRADES_TOTAL = TRADES_PAGE_SIZE * TRADES_TOTAL_PAGES;
 
 fetchAllBtn.addEventListener('click', async () => {
+  fetchAllBtn.classList.remove('fetch-btn-attention');
   const mint = mintInput.value.trim();
   if (!mint) return;
   clearError();
