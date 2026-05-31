@@ -405,6 +405,28 @@ body {
   mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M23 6l-9.5 9.5-5-5L1 18'/%3E%3Cpath d='M17 6h6v6'/%3E%3C/svg%3E");
 }
 
+.page-masthead__nav-row--secondary-endpoints {
+  width: 100%;
+  padding-top: 0.35rem;
+}
+
+.page-masthead__group--secondary-endpoints {
+  width: 100%;
+}
+
+.page-masthead__btns--secondary-endpoints {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.page-masthead__btns--secondary-endpoints .page-masthead__btn {
+  flex: 1 1 12rem;
+  min-width: 0;
+  max-width: 100%;
+}
+
 .page-masthead__nav-row--related {
   width: 100%;
   padding-top: 0.2rem;
