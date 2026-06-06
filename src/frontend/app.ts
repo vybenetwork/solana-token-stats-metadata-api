@@ -985,7 +985,7 @@ function buildTokenStatsPlaceholderHtml(): string {
   };
   const priceSection: TokenStatSectionSpec = {
     icon: tokenSectionIcons.price,
-    title: 'Price & market cap',
+    title: 'Price & Market Cap',
     theme: 'price',
     rows: [
       { key: 'priceUsd', label: 'Price (USD)', valueHtml: d },
@@ -996,7 +996,7 @@ function buildTokenStatsPlaceholderHtml(): string {
   };
   const supplyVolumeSection: TokenStatSectionSpec = {
     icon: tokenSectionIcons.supply,
-    title: 'Supply & volume (24h)',
+    title: 'Supply & Volume (24h)',
     theme: 'supply',
     rows: [
       { key: 'supply', label: 'Current supply', valueHtml: d },
@@ -1065,7 +1065,7 @@ function renderToken(t: TokenData): void {
   };
   const priceSection: TokenStatSectionSpec = {
     icon: tokenSectionIcons.price,
-    title: 'Price & market cap',
+    title: 'Price & Market Cap',
     theme: 'price',
     rows: [
       {
@@ -1106,7 +1106,7 @@ function renderToken(t: TokenData): void {
   };
   const supplyVolumeSection: TokenStatSectionSpec = {
     icon: tokenSectionIcons.supply,
-    title: 'Supply & volume (24h)',
+    title: 'Supply & Volume (24h)',
     theme: 'supply',
     rows: [
       {
